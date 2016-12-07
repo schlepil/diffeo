@@ -43,22 +43,22 @@ namespace DiffeoMethods{
             VectorXd thisNumTrans(1);
             thisNumTrans(0) = numTrans;
 
-            Schlepil::WriteMatrix(folder+"diffeo/centers.txt", centers, 32, writeMode);
-            Schlepil::WriteMatrix(folder+"diffeo/targets.txt", targets, 32, writeMode);
-            Schlepil::WriteVector(folder+"diffeo/coefs.txt", coefs, 32, writeMode);
-            Schlepil::WriteVector(folder+"diffeo/divisionCoefs.txt", divisionCoefs, 32, writeMode);
-            Schlepil::WriteVector(folder+"diffeo/numTrans.txt", thisNumTrans, 32, writeMode);
+            Leph::WriteMatrix(folder+"diffeo/centers.txt", centers, 32, writeMode);
+            Leph::WriteMatrix(folder+"diffeo/targets.txt", targets, 32, writeMode);
+            Leph::WriteVector(folder+"diffeo/coefs.txt", coefs, 32, writeMode);
+            Leph::WriteVector(folder+"diffeo/divisionCoefs.txt", divisionCoefs, 32, writeMode);
+            Leph::WriteVector(folder+"diffeo/numTrans.txt", thisNumTrans, 32, writeMode);
 
             return true;
         }
         ///////////////////////////////////////////////////////////
         bool fromFolder(const string & folder){
         try{
-            centers = Schlepil::ReadMatrix(folder+"diffeo/centers.txt");
-            targets = Schlepil::ReadMatrix(folder+"diffeo/targets.txt");
-            coefs = Schlepil::ReadVector(folder+"diffeo/coefs.txt");
-            divisionCoefs = Schlepil::ReadVector(folder+"diffeo/divisionCoefs.txt");
-            numTrans = (int) (Schlepil::ReadVector(folder+"diffeo/numTrans.txt")) (0);
+            centers = Leph::ReadMatrix(folder+"diffeo/centers.txt");
+            targets = Leph::ReadMatrix(folder+"diffeo/targets.txt");
+            coefs = Leph::ReadVector(folder+"diffeo/coefs.txt");
+            divisionCoefs = Leph::ReadVector(folder+"diffeo/divisionCoefs.txt");
+            numTrans = (int) (Leph::ReadVector(folder+"diffeo/numTrans.txt")) (0);
 
             if (not(centers.cols()==numTrans && targets.cols()==numTrans && coefs.size()==numTrans && divisionCoefs.size()==numTrans)){
                 std::cerr << "Inconsistent diffeo in number of transitions" << endl;

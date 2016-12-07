@@ -1,17 +1,18 @@
 from diffeoPlotUtils import *
 
 #Get data
-target = TXT2Matrix("../dataSet/goodmove", fileType="cpp")
+target = TXT2Matrix("../dataSet/takingCube", fileType="cpp")
 dim = target.shape[0]
     
 #Define
 name='thisTarget'
 #path="../tmp/"
 #storage="../tmp/results/"
-path="../tmp/diffeoXchange/"
-storage="../tmp/diffeoXchange/results/"
-time = TXT2Vector("../dataSet/goodmoveTime", fileType="python")
-time=time.reshape(time.size,)
+path="../tmp/"
+storage="../tmp/results/"
+time = TXT2Vector("../dataSet/takingCubeTime", fileType="python")
+time=time[:-1].reshape(target.shape[1],)
+time=time/6.
 
 #Get diffeo and transform
 tauSource = findDiffeoAndReturnTransformed(target, name=name, path=path, storage=storage, time=time)
@@ -47,7 +48,7 @@ data2Vel = 200.*np.hstack((np.diff(data2,1,1), np.zeros((dim,1))));
 data2Trans, data2VelTrans = transform(data2, diffeoPath=storage+name+"/", velocity=data2Vel, direction="forward", name="test", path=path, storage=storage)
 
 #Simulate the behaviour of some neighbooring initial points
-initPoints = 10.*(np.random.rand(dim, 10)-0.5)+target[:,[0]];
+initPoints = .1*(np.random.rand(dim, 10)-0.5)+target[:,[0]];
     
 tVec = np.linspace(0.0, time[0]*1.25, 1000);
 posSim, velSim, accSim = simulate(diffeoPath=storage+name+"/", initPoints=initPoints, tVec=tVec, name="tmpSim", path=path, storage=storage)
@@ -58,6 +59,14 @@ cList = ['g', 'b', 'r']
 for k in range(initPoints.shape[1]):
     plt.plot(posSim[k][0,:], posSim[k][1,:], cList[k%3])
 plt.plot(target[0,:], target[1,:], 'k', linewidth=2.)
+
+
+for k in range(dim):
+    plt.figure()
+    plt.title("Demonstration and replayed trajectories {0}".format(k))
+    for i in range(initPoints.shape[1]):
+        plt.plot(tVec, posSim[i][k,:], 'g')
+    plt.plot(time[0]-time, target[k,:], 'r', linewidth=2)
 
 #Get some velocities
 targetVel = np.hstack(( np.diff(target, 1,1), np.zeros((dim,1)) ))/(1./1000.)

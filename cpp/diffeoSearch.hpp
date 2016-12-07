@@ -406,7 +406,7 @@ namespace DiffeoMethods{
         result.centers.col(i) = current.col(idMax);
         result.targets.col(i) = target.col(idMax);
         iterativeFunction(result.centers.col(i), result.targets.col(i), current, result.divisionCoefs(i), result.coefs(i));
-        Schlepil::WriteMatrix("current", current, 16, "python");
+        Leph::WriteMatrix("current", current, 16, "python");
         //Done
         return true;
     }

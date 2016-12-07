@@ -33,3 +33,6 @@
 *.jpeg
 *.png
 *.gif
+
+# Other
+*~

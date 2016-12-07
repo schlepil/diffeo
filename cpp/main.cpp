@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
         //Linux specific
         (void) system(("mkdir -p "+storage+target+"/diffeo").c_str());
         //Get the data
-        MatrixXd targetMat = Schlepil::ReadMatrix(path+target);
+        MatrixXd targetMat = Leph::ReadMatrix(path+target);
         VectorXd timeVec;
         if ( time.compare("")!=0 ){
-            timeVec = Schlepil::ReadVector(path+time);
+            timeVec = Leph::ReadVector(path+time);
         }else{
             timeVec = VectorXd::Ones(1);
         }
@@ -132,9 +132,9 @@ int main(int argc, char* argv[])
         cout << "time 1 : " << duration << endl;
 
         //Save results
-        Schlepil::WriteMatrix( storage+target+"/source", sourceMat, 16, "python");
-        Schlepil::WriteMatrix( storage+target+"/target", targetMat, 16, "python");
-        Schlepil::WriteMatrix( storage+target+"/tau_source", tauSource, 16, "python");
+        Leph::WriteMatrix( storage+target+"/source", sourceMat, 16, "python");
+        Leph::WriteMatrix( storage+target+"/target", targetMat, 16, "python");
+        Leph::WriteMatrix( storage+target+"/tau_source", tauSource, 16, "python");
 
         /*
         //Align and scale the demonstration
@@ -152,11 +152,11 @@ int main(int argc, char* argv[])
         forwardDiffeo(tauSourceMat, thisDiffeo);
         //Safe the result
         // Get folder
-        Schlepil::WriteMatrix( storage+target+"/source", sourceMat, 16, "python");
-        Schlepil::WriteMatrix( storage+target+"/target", targetMat, 16, "python");
-        Schlepil::WriteMatrix( storage+target+"/tau_source", tauSourceMat, 16, "python");
-        Schlepil::WriteVector( storage+target+"/diffeo/scaling.txt", scaling, 16, "cpp");
-        Schlepil::WriteVector( storage+target+"/diffeo/offset.txt", offset, 16, "cpp");
+        Leph::WriteMatrix( storage+target+"/source", sourceMat, 16, "python");
+        Leph::WriteMatrix( storage+target+"/target", targetMat, 16, "python");
+        Leph::WriteMatrix( storage+target+"/tau_source", tauSourceMat, 16, "python");
+        Leph::WriteVector( storage+target+"/diffeo/scaling.txt", scaling, 16, "cpp");
+        Leph::WriteVector( storage+target+"/diffeo/offset.txt", offset, 16, "cpp");
         thisDiffeo.toFolder((storage+target+"/diffeo/"));
         */
     }else if(argvString[1].compare("-a")==0){
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
                 throw runtime_error("Direction needs to be either foward or backward");
             }
             //Get the data
-            MatrixXd sourceMat = Schlepil::ReadMatrix(path+source);
+            MatrixXd sourceMat = Leph::ReadMatrix(path+source);
             //Get the diffeo
             diffeoStruct thisDiffeo;
             thisDiffeo.fromFolder(diffeoPath);
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 
             //Save
             (void) system(("mkdir -p "+result+source).c_str());
-            Schlepil::WriteMatrix(result+source+"/tau_source", sourceMat, 16, "python");
+            Leph::WriteMatrix(result+source+"/tau_source", sourceMat, 16, "python");
         }else{
             throw runtime_error("Wrong number of arguments for apply");
         }
@@ -203,8 +203,8 @@ int main(int argc, char* argv[])
                 throw runtime_error("Direction needs to be either foward or backward");
             }
             //Get the data
-            MatrixXd sourcePointsMat = Schlepil::ReadMatrix(path+sourcePoints);
-            MatrixXd sourceVelocityMat = Schlepil::ReadMatrix(path+sourceVelocity);
+            MatrixXd sourcePointsMat = Leph::ReadMatrix(path+sourcePoints);
+            MatrixXd sourceVelocityMat = Leph::ReadMatrix(path+sourceVelocity);
             //Get the diffeo
             diffeoStruct thisDiffeo;
             thisDiffeo.fromFolder(diffeoPath);
@@ -216,8 +216,8 @@ int main(int argc, char* argv[])
             }
             //Save
             (void) system(("mkdir -p "+result).c_str());
-            Schlepil::WriteMatrix(result+sourcePoints+"/tau_source", sourcePointsMat, 16, "python");
-            Schlepil::WriteMatrix(result+sourcePoints+"/tau_vel", sourceVelocityMat, 16, "python");
+            Leph::WriteMatrix(result+sourcePoints+"/tau_source", sourcePointsMat, 16, "python");
+            Leph::WriteMatrix(result+sourcePoints+"/tau_vel", sourceVelocityMat, 16, "python");
         }else{
             throw runtime_error("Wrong number of arguments for apply velocity");
         }
@@ -228,11 +228,12 @@ int main(int argc, char* argv[])
         string storage = argvString[5];
         cout << diffeoPath << endl << initPoints << endl << path << endl << storage << endl;
 
-        MatrixXd initPointsMat = Schlepil::ReadMatrix(path+initPoints);
-        VectorXd tStepsVec = Schlepil::ReadVector(path+initPoints+"Time");
+        MatrixXd initPointsMat = Leph::ReadMatrix(path+initPoints);
+        VectorXd tStepsVec = Leph::ReadVector(path+initPoints+"Time");
 
         cout << initPointsMat.rows() << " : " << initPointsMat.cols() << endl;
         cout << tStepsVec.rows() << " : " << tStepsVec.cols() << endl;
+
 
         DiffeoMoveObj thisMovement;
         thisMovement.loadFolder(diffeoPath);
@@ -253,9 +254,9 @@ int main(int argc, char* argv[])
             }
 
             thisMovement.getTraj(resPos, resVel, resAcc, VectorXd(initPointsMat.col(i)), tStepsVec);
-            Schlepil::WriteMatrix(storage+initPoints+"/pos_"+to_string(i), resPos, 16, "python");
-            Schlepil::WriteMatrix(storage+initPoints+"/vel_"+to_string(i), resVel, 16, "python");
-            Schlepil::WriteMatrix(storage+initPoints+"/acc_"+to_string(i), resAcc, 16, "python");
+            Leph::WriteMatrix(storage+initPoints+"/pos_"+to_string(i), resPos, 16, "python");
+            Leph::WriteMatrix(storage+initPoints+"/vel_"+to_string(i), resVel, 16, "python");
+            Leph::WriteMatrix(storage+initPoints+"/acc_"+to_string(i), resAcc, 16, "python");
         }
     }else if(argvString[1].compare("-gv")==0){
         string diffeoPath = argvString[2];
@@ -273,7 +274,7 @@ int main(int argc, char* argv[])
             throw runtime_error("Unknown space "+whichSpaceStr);
         }
 
-        MatrixXd pts = Schlepil::ReadMatrix(path+name);
+        MatrixXd pts = Leph::ReadMatrix(path+name);
 
         DiffeoMoveObj thisMovement;
         thisMovement.loadFolder(diffeoPath);
@@ -303,7 +304,7 @@ int main(int argc, char* argv[])
         thisMovement.setScaleFunc(standardScale());
 
         MatrixXd vel = thisMovement.getVelocity(pts, whichSpace);
-        Schlepil::WriteMatrix(storage+name+"/resVel", vel, 16, "python");
+        Leph::WriteMatrix(storage+name+"/resVel", vel, 16, "python");
 
     }else{
         throw runtime_error("Unknwon command");

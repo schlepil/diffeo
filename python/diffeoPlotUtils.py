@@ -68,14 +68,16 @@ def findDiffeoAndReturnTransformed(target, name='thisTarget', path="../tmp/", st
     Array2TXT(path+name, target, "cpp", format="%.32e");
     timeStr = ""
     if not(time is None):
-        assert(time.size == target.shape[1], "Time must have the same length as target columns")
+        assert time.size == target.shape[1], "Time must have the same length as target columns"
         time.resize(time.size,)
         Array2TXT(path+name+"Time", time, fileType="cpp", format="%.32e")
         timeStr = name+"Time"
     #Launch the Cpp
     
     proc = subprocess.Popen( exePath+"-s {0} {1} {2} {3}".format(name, path, storage, timeStr), shell=True )
-    proc.wait()
+    pp = proc.wait()
+    assert pp==0, "Childprocess failed miserably with {0}".format(pp)
+    
     
     #Get the result
     tauSource = TXT2Matrix(storage+name+"/tau_source", "python")
@@ -85,10 +87,10 @@ def transform(points, diffeoPath, velocity=None, direction="forward", name="this
     
     velExists = not velocity==None;
     if velExists:
-        assert(np.all( points.shape == velocity.shape ))
+        assert np.all( points.shape == velocity.shape )
         if (velName==None):
             velName = name+"Vel"
-    assert(direction in ("forward", "reverse"), "direction needs to be forward or reverse")
+    assert direction in ("forward", "reverse"), "direction needs to be forward or reverse"
     
     subprocess.call(["mkdir", "-p", path])
     subprocess.call(["mkdir", "-p", storage])
@@ -101,12 +103,14 @@ def transform(points, diffeoPath, velocity=None, direction="forward", name="this
     #Launch the Cpp
     if not velExists:
         proc = subprocess.Popen( exePath+"-a {0} {1} {2} {3} {4}".format(diffeoPath, name, direction, path, storage), shell=True )
-        proc.wait()
+        pp = proc.wait()
+        assert pp==0, "Childprocess failed miserably with {0}".format(pp)
         #Retrieve results
         return TXT2Matrix(storage+name+"/tau_source", fileType="python")
     else:
         proc = subprocess.Popen( exePath+"-av {0} {1} {2} {3} {4} {5}".format(diffeoPath, name, velName, direction, path, storage), shell=True )
-        proc.wait()
+        pp = proc.wait()
+        assert pp==0, "Childprocess failed miserably with {0}".format(pp)
         #Retrieve results
         return TXT2Matrix(storage+name+"/tau_source", fileType="python"), TXT2Matrix(storage+name+"/tau_vel", fileType="python")
 ##############################################################     
@@ -116,7 +120,7 @@ def plot2DGrid(diffeoPath, direction = "forward", lims=None, ax=None, N=20, N2=2
         if (lims is None) and (ax is None):
             print("Define either lims or fig")
             return False
-        assert(direction in ("forward", "reverse"), "direction needs to be forward or reverse")
+        assert direction in ("forward", "reverse"), "direction needs to be forward or reverse"
         
         if (lims is None):
             lims = np.hstack((ax.get_xlim(), ax.get_ylim()))
@@ -196,7 +200,8 @@ def simulate(diffeoPath, initPoints, tVec, name="thisTmp", path="../tmp/", stora
     Array2TXT(path+name+"Time", tVec, fileType="cpp")
     
     proc = subprocess.Popen( exePath+"-fs {0} {1} {2} {3}".format(diffeoPath, name, path, storage), shell=True )
-    proc.wait()
+    pp = proc.wait()
+    assert pp==0, "Childprocess failed miserably with {0}".format(pp)
     
     pos = []
     vel = []

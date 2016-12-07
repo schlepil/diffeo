@@ -182,19 +182,19 @@ namespace DiffeoMovements{
             (void) system( ("mkdir "+path+"/diffeo/details").c_str() );
             //Check how to catch errors here
 
-            Schlepil::WriteMatrix(path+"/diffeo/details/linGainRot.txt", _linGainRot, 32, "cpp");
-            Schlepil::WriteVector(path+"/diffeo/details/scaling.txt", _scaling, 32, "cpp");
-            Schlepil::WriteVector(path+"/diffeo/details/offset.txt", _offset, 32, "cpp");
-            Schlepil::WriteVector(path+"/diffeo/details/cSpaceVel.txt", VectorXd::Ones(1)*_controlSpaceVelocity, 32, "cpp");
+            Leph::WriteMatrix(path+"/diffeo/details/linGainRot.txt", _linGainRot, 32, "cpp");
+            Leph::WriteVector(path+"/diffeo/details/scaling.txt", _scaling, 32, "cpp");
+            Leph::WriteVector(path+"/diffeo/details/offset.txt", _offset, 32, "cpp");
+            Leph::WriteVector(path+"/diffeo/details/cSpaceVel.txt", VectorXd::Ones(1)*_controlSpaceVelocity, 32, "cpp");
 
             return true;
         }
 
         bool fromFolder(const string & path){
-            _linGainRot = Schlepil::ReadMatrix(path+"/diffeo/details/linGainRot.txt");
-            _scaling = Schlepil::ReadVector(path+"/diffeo/details/scaling.txt");
-            _offset = Schlepil::ReadVector(path+"/diffeo/details/offset.txt");
-            _controlSpaceVelocity = (double) (Schlepil::ReadVector(path+"/diffeo/details/cSpaceVel.txt"))(0);
+            _linGainRot = Leph::ReadMatrix(path+"/diffeo/details/linGainRot.txt");
+            _scaling = Leph::ReadVector(path+"/diffeo/details/scaling.txt");
+            _offset = Leph::ReadVector(path+"/diffeo/details/offset.txt");
+            _controlSpaceVelocity = (double) (Leph::ReadVector(path+"/diffeo/details/cSpaceVel.txt"))(0);
 
             if (not(_linGainRot.cols()==_linGainRot.rows())){
                 cerr << "Rotation matrix needs to be square" << endl;
@@ -240,10 +240,10 @@ namespace DiffeoMovements{
     ////////////////////////////////////////////
     bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const string & inputPath, const string & resultPath="", const string & targetName = "thisTarget", const string & timeName="thisTime"){
         //Load data
-        MatrixXd target = Schlepil::ReadMatrix(inputPath+targetName);
+        MatrixXd target = Leph::ReadMatrix(inputPath+targetName);
         VectorXd time;
         try{
-            time = Schlepil::ReadVector(inputPath+timeName);
+            time = Leph::ReadVector(inputPath+timeName);
         }catch(...){
             cerr << "Could not read "+inputPath+timeName << endl;
             cerr << "Assuming no time given" << endl;
