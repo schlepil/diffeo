@@ -60,7 +60,15 @@ int main(int argc, char* argv[])
     }
 
     if (argc<3){
-        throw runtime_error("Wrong number of args");
+      string exec(argv[0]);
+      cout << "Usage:" << endl;
+      cout << "\t" << exec << " -s [search] targetLine storageFolder path" << endl;
+      cout << "\t" << exec << " -a [apply] diffeoPath source result direction" << endl;
+      cout << "\t" << exec << " -a [apply] diffeoPath sourcePoints sourceVelocity result direction" << endl;
+      cout << "\t" << exec << " -fs" << endl;
+      cout << "\t" << exec << " -gv" << endl;
+      
+      throw runtime_error("Wrong number of args");
     }
 
     //Simple interface
