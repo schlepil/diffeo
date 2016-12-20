@@ -3,8 +3,8 @@
 
 #include <math.h>
 
-#include"diffeoMethods.hpp"
-#include"thingsThatShouldExist.hpp"
+#include "diffeoMethods.hpp"
+#include "thingsThatShouldExist.hpp"
 
 #include <Eigen/SVD>
 #include <Eigen/Eigenvalues>

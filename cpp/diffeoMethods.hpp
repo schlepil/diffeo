@@ -4,6 +4,7 @@
 #include<iostream>
 #include <math.h>
 
+#include <Eigen/LU>
 #include <Eigen/Core>
 
 #include "FileVector.h"
