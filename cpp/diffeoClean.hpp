@@ -1,3 +1,5 @@
+#ifndef DIFFEO_HPP
+#define DIFFEO_HPP
 
 #include <math.h>
 
@@ -9,10 +11,11 @@
 
 #include <functional>
 
-#include<Eigen/StdVector>
+#include <Eigen/StdVector>
 
 //#include <Utils/FileVector.h>
-#include "/home/elfuius/ownCloud/thesis/Bordeaux/myStuff/newStuff/testDiffeo/fileMatrixVector.h"
+//#include "/home/elfuius/ownCloud/thesis/Bordeaux/myStuff/newStuff/testDiffeo/fileMatrixVector.h"
+#include "FileVector.h"
 
 #ifndef PIExists
     #define PI 3.141592653589793
@@ -20,10 +23,6 @@
     #define Rad2Ang 180./3.141592653589793
     #define PIExists
 #endif
-
-
-#ifndef DIFFEO_HPP
-#define DIFFEO_HPP
 
 using namespace std;
 using namespace Eigen;
@@ -489,23 +488,23 @@ class DiffeoMoveObj{
         void loadFolder(const std::string & aFolder)
         {
             //Replace standard values with values from files in folder if existing
-            _thisDiffeo.centers = Schlepil::ReadMatrix( aFolder+"/centers.txt" );
-            _thisDiffeo.targets = Schlepil::ReadMatrix( aFolder+"/targets.txt" );
-            _thisDiffeo.coefs = Schlepil::ReadVector( aFolder+"/coefs.txt" );
-            _thisDiffeo.divisionCoefs = Schlepil::ReadVector( aFolder+"/division_coefs.txt" );
-            _thisDiffeo.numTrans = (int) Schlepil::ReadVector( aFolder+"/numTrans.txt")(1);
+            _thisDiffeo.centers = Leph::ReadMatrix( aFolder+"/centers.txt" );
+            _thisDiffeo.targets = Leph::ReadMatrix( aFolder+"/targets.txt" );
+            _thisDiffeo.coefs = Leph::ReadVector( aFolder+"/coefs.txt" );
+            _thisDiffeo.divisionCoefs = Leph::ReadVector( aFolder+"/division_coefs.txt" );
+            _thisDiffeo.numTrans = (int) Leph::ReadVector( aFolder+"/numTrans.txt")(1);
 
             //
-            _scaling = Schlepil::ReadVector( aFolder+"/scaling.txt");
-            _htOffset = Schlepil::ReadVector( aFolder+"/translation.txt" );
-            _htRot = Schlepil::ReadMatrix( aFolder+"/rotationMatrix.txt" );
+            _scaling = Leph::ReadVector( aFolder+"/scaling.txt");
+            _htOffset = Leph::ReadVector( aFolder+"/translation.txt" );
+            _htRot = Leph::ReadMatrix( aFolder+"/rotationMatrix.txt" );
             _htRotInv = _htRot.inverse();
             //
-            //Vector2d tmpVec = Schlepil::ReadVector( aFolder+"/stepSize.txt" );
-            _controlSpaceVelocity = (Schlepil::ReadVector( aFolder+"/controlSpaceVelocity.txt" ))(1);
+            //Vector2d tmpVec = Leph::ReadVector( aFolder+"/stepSize.txt" );
+            _controlSpaceVelocity = (Leph::ReadVector( aFolder+"/controlSpaceVelocity.txt" ))(1);
 
             //Get the rotation
-            this->setLinGainRot(Schlepil::ReadMatrix( aFolder+"/rotationMatrixLinearGain.txt" ));
+            this->setLinGainRot(Leph::ReadMatrix( aFolder+"/rotationMatrixLinearGain.txt" ));
 
             assert( _thisDiffeo.centers.cols() == _thisDiffeo.targets.cols() && _thisDiffeo.centers.rows() == _thisDiffeo.targets.rows() && _thisDiffeo.numTrans == _thisDiffeo.centers.cols() && _thisDiffeo.numTrans == _thisDiffeo.targets.cols() );
             if ( not _isInit ){

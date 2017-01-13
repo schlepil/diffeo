@@ -5,7 +5,7 @@
 #include <Eigen/LU>
 #include <vector>
 #include <functional>
-
+		
 #include "diffeoMethods.hpp"
 #include "diffeoSearch.hpp"
 #include "thingsThatShouldExist.hpp"
@@ -210,78 +210,6 @@ namespace DiffeoMovements{
     };
 //////////////////////////////////////////////////////////////////////////////
 
-    bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
-        //Search the geometric diffeo and set the additional informations concerning speed etc
-        if (not( (targetIn.cols()==timeIn.size()) || (timeIn.size()==1) )){
-            throw runtime_error("time.size is either 1 or target.cols");
-        }
-
-        //First make the demonstration end at 0 and scale it
-        MatrixXd target = resultDetails.calcNtransform(targetIn, timeIn, opts);
-
-        //Now get the source
-        MatrixXd source = getSourceTraj(target, timeIn);
-
-        //Now search for the diffeo
-        if (not( iterativeSearch(source, target, resultDiffeo, opts) )){
-            cout << "Search failed" << endl;
-            return false;
-        }
-
-        //Save the results in file if demanded
-        if (resultPath.compare("")!=0){
-            resultDiffeo.toFolder(resultPath);
-            resultDetails.toFolder(resultPath);
-        }
-
-        //Done
-        return true;
-    }
-    ////////////////////////////////////////////
-    bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const string & inputPath, const string & resultPath="", const string & targetName = "thisTarget", const string & timeName="thisTime", diffeoSearchOpts & opts= aDiffeoSearchOpt){
-        //Load data
-        MatrixXd target = Leph::ReadMatrix(inputPath+targetName);
-        VectorXd time;
-        try{
-            time = Leph::ReadVector(inputPath+timeName);
-        }catch(...){
-            cerr << "Could not read "+inputPath+timeName << endl;
-            cerr << "Assuming no time given" << endl;
-            time = VectorXd::Ones(1); time(0) = 1.;
-        }
-        //Call main function
-        return searchDiffeoMovement(resultDiffeo, resultDetails, target, time, resultPath, aDiffeoSearchOpt);
-    }
-////////////////////////////////////////////////////////////////////////////////////////
-
-    DiffeoMoveObj searchDiffeoMovement(const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
-        //Create the output
-        DiffeoMoveObj resultDiffeoObj;
-        diffeoStruct resultDiffeo;
-        diffeoDetails resultDetails;
-        //Call main function
-        if (not searchDiffeoMovement(resultDiffeo, resultDetails, targetIn, timeIn, resultPath, aDiffeoSearchOpt)){
-            throw runtime_error("Matching failed");
-        };
-        resultDiffeoObj.setDiffeoStruct(resultDiffeo);
-        resultDiffeoObj.setDiffeoDetailsStruct(resultDetails);
-        resultDiffeoObj.doInit();
-        return resultDiffeoObj;
-    }
-////////////////////////////////////////////////////////////////////////////////////////
-    DiffeoMoveObj searchDiffeoMovement(const string & inputPath, const string & resultPath="", const string & targetName = "thisTarget", const string & timeName="thisTime", diffeoSearchOpts & opts= aDiffeoSearchOpt){
-        //Load data
-        MatrixXd target = Leph::ReadMatrix(inputPath+targetName);
-        VectorXd time;
-        try{
-            time = Leph::ReadVector(inputPath+timeName);
-        }catch(...){
-            cerr << "Could not read "+inputPath+timeName << endl;
-            cerr << "Assuming no time given" << endl;
-            time = VectorXd::Ones(1); time(0) = 1.;
-        }
-        return searchDiffeoMovement(target, time, resultPath, aDiffeoSearchOpt);
-    }
 ////////////////////////////////////////////
 class targetModifier{
 
@@ -940,6 +868,79 @@ class targetModifier{
                 _checkFun();
             }
     };
+    
+    
+    bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
+        //Search the geometric diffeo and set the additional informations concerning speed etc
+        if (not( (targetIn.cols()==timeIn.size()) || (timeIn.size()==1) )){
+            throw runtime_error("time.size is either 1 or target.cols");
+        }
+
+        //First make the demonstration end at 0 and scale it
+        MatrixXd target = resultDetails.calcNtransform(targetIn, timeIn, opts);
+
+        //Now get the source
+        MatrixXd source = getSourceTraj(target, timeIn);
+
+        //Now search for the diffeo
+        if (not( iterativeSearch(source, target, resultDiffeo, opts) )){
+            cout << "Search failed" << endl;
+            return false;
+        }
+
+        //Save the results in file if demanded
+        if (resultPath.compare("")!=0){
+            resultDiffeo.toFolder(resultPath);
+            resultDetails.toFolder(resultPath);
+        }
+
+        //Done
+        return true;
+    }
+    ////////////////////////////////////////////
+    bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const string & inputPath, const string & resultPath="", const string & targetName = "thisTarget", const string & timeName="thisTime", diffeoSearchOpts & opts= aDiffeoSearchOpt){
+        //Load data
+        MatrixXd target = Leph::ReadMatrix(inputPath+targetName);
+        VectorXd time;
+        try{
+            time = Leph::ReadVector(inputPath+timeName);
+        }catch(...){
+            cerr << "Could not read "+inputPath+timeName << endl;
+            cerr << "Assuming no time given" << endl;
+            time = VectorXd::Ones(1); time(0) = 1.;
+        }
+        //Call main function
+        return searchDiffeoMovement(resultDiffeo, resultDetails, target, time, resultPath, aDiffeoSearchOpt);
+    }
+	////////////////////////////////////////////////////////////////////////////////////////
+    DiffeoMoveObj searchDiffeoMovement(const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
+        //Create the output
+        DiffeoMoveObj resultDiffeoObj;
+        diffeoStruct resultDiffeo;
+        diffeoDetails resultDetails;
+        //Call main function
+        if (not searchDiffeoMovement(resultDiffeo, resultDetails, targetIn, timeIn, resultPath, aDiffeoSearchOpt)){
+            throw runtime_error("Matching failed");
+        };
+        resultDiffeoObj.setDiffeoStruct(resultDiffeo);
+        resultDiffeoObj.setDiffeoDetailsStruct(resultDetails);
+        resultDiffeoObj.doInit();
+        return resultDiffeoObj;
+    }
+	////////////////////////////////////////////////////////////////////////////////////////
+    DiffeoMoveObj searchDiffeoMovement(const string & inputPath, const string & resultPath="", const string & targetName = "thisTarget", const string & timeName="thisTime", diffeoSearchOpts & opts= aDiffeoSearchOpt){
+        //Load data
+        MatrixXd target = Leph::ReadMatrix(inputPath+targetName);
+        VectorXd time;
+        try{
+            time = Leph::ReadVector(inputPath+timeName);
+        }catch(...){
+            cerr << "Could not read "+inputPath+timeName << endl;
+            cerr << "Assuming no time given" << endl;
+            time = VectorXd::Ones(1); time(0) = 1.;
+        }
+        return searchDiffeoMovement(target, time, resultPath, aDiffeoSearchOpt);
+    }
 }
 
 #endif // DIFFEO_MOVEMENTS_HPP

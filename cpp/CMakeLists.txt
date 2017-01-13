@@ -5,6 +5,8 @@ project (diffeo)
 set(CMAKE_BUILD_TYPE Release)
 set (CMAKE_CXX_STANDARD 11)
 
+add_definitions(-std=c++11)
+
 
 ### adding Eigen3 ###
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
