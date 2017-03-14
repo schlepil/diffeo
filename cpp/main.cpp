@@ -18,7 +18,7 @@ using namespace DiffeoMovements;
 int main(int argc, char* argv[])
 {
     //Get some parameters
-    diffeoSearchOpts theseOptions = diffeoSearchOpts(80);
+    diffeoSearchOpts theseOptions = diffeoSearchOpts(100);
 
     //Change the scaling
     theseOptions.thisScalingMethod = maximal;
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
       cout << "\t" << exec << " -a [apply] diffeoPath sourcePoints sourceVelocity result direction" << endl;
       cout << "\t" << exec << " -fs" << endl;
       cout << "\t" << exec << " -gv" << endl;
-      
+
       throw runtime_error("Wrong number of args");
     }
 
@@ -250,6 +250,21 @@ int main(int argc, char* argv[])
         thisMovement.setZoneFunction(ret0());
         thisMovement.setScaleFunc(standardScale());
 
+        //Get the new modifier
+        if (thisMovement.getDimension()==2){
+            cout << thisMovement.getDiffeoStuct().centers.transpose() << endl;
+            modifierDiffeo myMod(thisMovement);
+            Vector2d pt;
+            pt<<-15,25;
+            Vector2d cDir;
+            cDir << 1.,1.;
+            myMod.addCorrectionPair(pt, cDir, 0.2);
+            myMod._modScaling[0]=.5;
+            myMod._modScaling[1]=.5;
+            myMod.applyModification();
+            cout << thisMovement.getDiffeoStuct().centers.transpose() << endl;
+        }
+
         MatrixXd resPos;
         MatrixXd resVel;
         MatrixXd resAcc;
@@ -258,7 +273,8 @@ int main(int argc, char* argv[])
         for (size_t i=0; i<(size_t)initPointsMat.cols();++i){
             //If the dimension is 2, set one of the modifiers
             if (dim == 2){
-                thisMovement.setTargetModifier(&allTargMods[ (i%3) ]);
+                //thisMovement.setTargetModifier(&allTargMods[ (i%3) ]);
+                thisMovement.setTargetModifier(&allTargMods[ 0 ]);
             }
 
             thisMovement.getTraj(resPos, resVel, resAcc, VectorXd(initPointsMat.col(i)), tStepsVec);
