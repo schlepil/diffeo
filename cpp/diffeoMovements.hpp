@@ -5,7 +5,7 @@
 #include <Eigen/LU>
 #include <vector>
 #include <functional>
-		
+
 #include "diffeoMethods.hpp"
 #include "diffeoSearch.hpp"
 #include "thingsThatShouldExist.hpp"
@@ -107,6 +107,72 @@ namespace DiffeoMovements{
             ptYd = stepTime * ( (ptYd.cwiseProduct( thisVelocity.replicate( ptY.rows(), 1 ) )).cwiseQuotient( ptYNorm.replicate(ptY.rows(), 1) ) );
         }
     };
+//////////////////////////////////////////////////////////////////////////////
+    //Helper rotation diffeo struct
+    struct RotDiffeo{
+        //This has to be made properly
+        //Handle with care
+        public:
+            MatrixXd Rot;
+            MatrixXd RotInv;
+            VectorXd center;
+            double beta;
+            double alpha;
+    }
+    //Quick n Dirty implementation to locally optimize mouvements
+    /*
+    This scale function composes a modification of the control space velocity with the actual scaling
+    The control space velocity modification has the same effect as composing the actual diffeo with a
+    second diffeo composed of transformations of the form
+    x' = c+R(alpha*exp(-beta^2.||x-c||^2)).(x-c)
+    where R(alpha*exp(-beta^2.||x-c||^2)) is a rotation matrix
+    */
+
+    class modifyingScale{
+        public:
+            vector<RotDiffeo *> diffeoVect;
+            modifyingScale(){
+                diffeoVect.clear()
+            }
+            //Modify the velocity
+            template<typename VM1>
+            inline void operator () (const VM1 & ptY, VM1 & ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
+                MatrixXd R = MatrixXd::Identity(ptY.rows());
+                MatrixXd dR = MatrixXd::Identity(ptY.rows());
+                VectorXd thisC;
+                unsigned nPt = ptY.cols();
+                for(vector<RotDiffeo *>::reverse_iterator rit = diffeoVect.rbegin(); rit != diffeoVect.rend(); ++rit)
+                    {
+                    //Loop over transformations
+                    thisC = (*rit).center;
+                    MatrixXd dX = ptY.colwise()-thisC;
+                    VectorXd angles = (*rit).alpha*(-((*rit).beta*(*rit).beta)*(dX.cwiseProduct(dX))).colwise().sum().array().exp();
+                    VectorXd sinAngles = sin(angles);
+                    VectorXd cosAngles = cos(angles);
+                    //Loop over points
+                    for (unsigned j = 0; j++ < nPt; ){
+                        //Assemble the matrices
+                        R = MatrixXd::Identity(ptY.rows());
+                        dR = MatrixXd::Identity(ptY.rows());
+                        R(0,0)=cosAngles(j);
+                        R(1,1)=cosAngles(j);
+                        R(0,1)=-sinAngles(j);
+                        R(1,0)= sinAngles(j);
+                        dR(0,0)=-sinAngles(j);
+                        dR(1,1)=-sinAngles(j);
+                        dR(0,1)=-cosAngles(j);
+                        dR(1,0)= cosAngles(j);
+                        R = (rit->RotInv)*R*(rit->Rot);
+                        dR = (-2.*(rit->beta)*(rit->beta)*angles(j)*(rit->RotInv)*dR*(rit->Rot))*(dX.col(j)*(dX.col(j).transpose()));
+
+                        ptYd.col(j)=(R+dR)*ptYd.col(j);
+                    }
+                }
+                //Limit velocity of transformed
+
+            }
+    }
+
 //////////////////////////////////////////////////////////////////////////////
     struct diffeoDetails{
         VectorXd _scaling;
@@ -868,8 +934,8 @@ class targetModifier{
                 _checkFun();
             }
     };
-    
-    
+
+
     bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
         //Search the geometric diffeo and set the additional informations concerning speed etc
         if (not( (targetIn.cols()==timeIn.size()) || (timeIn.size()==1) )){
