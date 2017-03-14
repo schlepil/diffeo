@@ -517,11 +517,14 @@ class targetModifier{
                     MatrixXd* thisMat = new MatrixXd;
                     *thisMat = MatrixXd::Identity(Ai.rows(), Ai.cols());
                     _Alist.push_back( thisMat );
+                    cout << "Addr " << thisMat << endl;
                 }
 
                 MatrixXd* thisMat = new MatrixXd;
                 *thisMat = _thisDiffeoDetails._linGainRot.transpose()*Ai*_thisDiffeoDetails._linGainRot;
                 _Alist[i] = thisMat;
+                cout << "Addr " << thisMat << endl;
+                cout << *_Alist[i] << endl;
             }
             //////////////////////////////////////////////
             void setZoneFunction( std::function<int (const VectorXd & pt)> fZone ){
@@ -626,7 +629,7 @@ class targetModifier{
                 nextPtX = MatrixXd::Zero(_dim, tSteps.size());
 
                 int thisZone, thisZone2;
-                MatrixXd thisA(_dim, _dim);
+                MatrixXd thisA;
 
                 double thisdT;
                 VectorXd ptPrimed(_dim);
@@ -709,7 +712,7 @@ class targetModifier{
                 nextPtXd = MatrixXd::Zero(_dim, tSteps.size());
 
                 int thisZone, thisZone2;
-                MatrixXd thisA(_dim, _dim);
+                MatrixXd thisA;
 
                 double thisdT;
                 VectorXd ptPrimed(_dim);
@@ -717,6 +720,8 @@ class targetModifier{
                 cout << ptPrime << endl;
                 thisZone = _fZone(ptPrime);
                 cout << thisZone << endl;
+                cout << _Alist[thisZone] << endl;
+                cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps[tSteps.size()-1]){
 
@@ -814,6 +819,9 @@ class targetModifier{
                 VectorXd ptPrimed(_dim);
                 //Initialise
                 thisZone = _fZone(ptPrime);
+                cout << thisZone << endl;
+                cout << _Alist[thisZone] << endl;
+                cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps2[tSteps2.size()-1]){
 
@@ -1007,7 +1015,7 @@ class targetModifier{
             vector<double> _modScaling;
             vector<double> _modCoeffs;
 
-            modifierDiffeo( DiffeoMoveObj origMove ){
+            modifierDiffeo( DiffeoMoveObj & origMove ){
                 _aMovement = &origMove;
                 _aDiffeoStruct = &origMove.getDiffeoStuct();
                 _initialNumTrans = _aDiffeoStruct->numTrans;
