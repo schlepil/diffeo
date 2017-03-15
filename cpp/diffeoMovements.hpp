@@ -717,11 +717,11 @@ class targetModifier{
                 double thisdT;
                 VectorXd ptPrimed(_dim);
                 //Initialise
-                cout << ptPrime << endl;
+                //cout << ptPrime << endl;
                 thisZone = _fZone(ptPrime);
-                cout << thisZone << endl;
-                cout << _Alist[thisZone] << endl;
-                cout << *_Alist[thisZone] << endl;
+                //cout << thisZone << endl;
+                //cout << _Alist[thisZone] << endl;
+                //cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps[tSteps.size()-1]){
 
@@ -819,9 +819,9 @@ class targetModifier{
                 VectorXd ptPrimed(_dim);
                 //Initialise
                 thisZone = _fZone(ptPrime);
-                cout << thisZone << endl;
-                cout << _Alist[thisZone] << endl;
-                cout << *_Alist[thisZone] << endl;
+                //cout << thisZone << endl;
+                //cout << _Alist[thisZone] << endl;
+                //cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps2[tSteps2.size()-1]){
 
@@ -1045,14 +1045,19 @@ class targetModifier{
                 _aDiffeoStruct->divisionCoefs.conservativeResize(_initialNumTrans + _numModifiers);
 
                 //Compute the actual values
-                for (unsigned i=0; ++i < _numModifiers; ){
+                for (unsigned i=0; i < _numModifiers; i++){
                     _aDiffeoStruct->centers.col(_initialNumTrans+i) = *(_modPoints[i]);
                     _aDiffeoStruct->targets.col(_initialNumTrans+i) = *(_modPoints[i])+_modScaling[i]*(*_modTransVects[i]);
                     _aDiffeoStruct->coefs(_initialNumTrans+i)=_modCoeffs[i];
                     _aDiffeoStruct->divisionCoefs(_initialNumTrans+i)=1.;
+                    cout << i << endl;
+                    cout << _aDiffeoStruct->centers.col(_initialNumTrans+i) << endl;
+                    cout << _aDiffeoStruct->targets.col(_initialNumTrans+i) << endl;
                     //Check whether the added transformation was a diffeo
                     if (_modCoeffs[i] > 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() ))){
-                        cout << "The modifying transformation " << i << "is not diffeomorphic " << endl << _modCoeffs[i] << " to " << 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() )) << endl;
+                        cout << "The modifying transformation " << i << "is __ NOT __ diffeomorphic " << endl << _modCoeffs[i] << " to " << 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() )) << endl;
+                    }else{
+                        cout << "The modifying transformation " << i << "is diffeomorphic " << endl << _modCoeffs[i] << " to " << 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() )) << endl;
                     }
                 }
             }
@@ -1075,20 +1080,34 @@ class targetModifier{
                 //Compute the centers of the transformations
                 VectorXd * pointBefore = new VectorXd;
                 *pointBefore = ptX-dist*tangent;
+                cout << "Before P" << endl << *pointBefore << endl;
                 VectorXd * pointAfter = new VectorXd;
                 *pointAfter = ptX+dist*tangent;
+                cout << "After P" << endl << *pointAfter << endl;
                 //The drection
                 VectorXd * dirBefore = new VectorXd;
                 *dirBefore = -corrDirec;
+                cout << "Before D" << endl << *dirBefore << endl;
                 VectorXd * dirAfter = new VectorXd;
+                cout << "After D" << endl << *dirAfter << endl;
                 *dirAfter = corrDirec;
+                //Attention the diffeo is applied onto !scaled! values, so
+                VectorXd ptXprime=ptX;
+                _aMovement->getDiffeoDetailsStruct().doTransform(ptXprime);
+                _aMovement->getDiffeoDetailsStruct().doTransform(*pointBefore, *dirBefore);
+                _aMovement->getDiffeoDetailsStruct().doTransform(*pointAfter, *dirAfter);
+                cout << "Before P" << endl << *pointBefore << endl;
+                cout << "After P" << endl << *pointAfter << endl;
+                cout << "Before D" << endl << *dirBefore << endl;
+                cout << "After D" << endl << *dirAfter << endl;
+                dist = (ptXprime-(*pointAfter)).norm();
                 //The coef
-                double coef = log(-(influenceOnPoint/((dist*dist))));
+                double coef = -log(influenceOnPoint)/(dist*dist);
 
                 //Store the shit
                 _numModifiers += 2;
-                _modPoints.push_back( dirBefore );
-                _modPoints.push_back( dirAfter );
+                _modPoints.push_back( pointBefore );
+                _modPoints.push_back( pointAfter );
                 _modTransVects.push_back( dirBefore );
                 _modTransVects.push_back( dirAfter );
                 _modCoeffs.push_back(coef);

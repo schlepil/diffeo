@@ -258,9 +258,9 @@ int main(int argc, char* argv[])
             pt<<-15,25;
             Vector2d cDir;
             cDir << 1.,1.;
-            myMod.addCorrectionPair(pt, cDir, 0.2);
-            myMod._modScaling[0]=.5;
-            myMod._modScaling[1]=.5;
+            myMod.addCorrectionPair(pt, cDir, 0.05, 0.75);
+            myMod._modScaling[0]=1.;
+            myMod._modScaling[1]=1.;
             myMod.applyModification();
             cout << thisMovement.getDiffeoStuct().centers.transpose() << endl;
         }
