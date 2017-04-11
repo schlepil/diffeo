@@ -1,11 +1,13 @@
 #ifndef DIFFEO_MOVEMENTS_HPP
 #define DIFFEO_MOVEMENTS_HPP
 
+#include <math.h>
+
 #include <Eigen/Core>
 #include <Eigen/LU>
 #include <vector>
 #include <functional>
-		
+
 #include "diffeoMethods.hpp"
 #include "diffeoSearch.hpp"
 #include "thingsThatShouldExist.hpp"
@@ -107,6 +109,73 @@ namespace DiffeoMovements{
             ptYd = stepTime * ( (ptYd.cwiseProduct( thisVelocity.replicate( ptY.rows(), 1 ) )).cwiseQuotient( ptYNorm.replicate(ptY.rows(), 1) ) );
         }
     };
+//////////////////////////////////////////////////////////////////////////////
+    //Helper rotation diffeo struct
+    /*struct RotDiffeo{
+        //This has to be made properly
+        //Handle with care
+        public:
+            MatrixXd Rot;
+            MatrixXd RotInv;
+            VectorXd center;
+            double beta;
+            double alpha;
+    }
+    */
+    //Quick n Dirty implementation to locally optimize mouvements
+    /*
+    This scale function composes a modification of the control space velocity with the actual scaling
+    The control space velocity modification has the same effect as composing the actual diffeo with a
+    second diffeo composed of transformations of the form
+    x' = c+R(alpha*exp(-beta^2.||x-c||^2)).(x-c)
+    where R(alpha*exp(-beta^2.||x-c||^2)) is a rotation matrix
+    */
+/*
+    class modifyingScale{
+        public:
+            vector<RotDiffeo *> diffeoVect;
+            modifyingScale(){
+                diffeoVect.clear()
+            }
+            //Modify the velocity
+            template<typename VM1>
+            inline void operator () (const VM1 & ptY, VM1 & ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
+                MatrixXd R = MatrixXd::Identity(ptY.rows());
+                MatrixXd dR = MatrixXd::Identity(ptY.rows());
+                VectorXd thisC;
+                unsigned nPt = ptY.cols();
+                for(vector<RotDiffeo *>::reverse_iterator rit = diffeoVect.rbegin(); rit != diffeoVect.rend(); ++rit)
+                    {
+                    //Loop over transformations
+                    thisC = (*rit).center;
+                    MatrixXd dX = ptY.colwise()-thisC;
+                    VectorXd angles = (*rit).alpha*(-((*rit).beta*(*rit).beta)*(dX.cwiseProduct(dX))).colwise().sum().array().exp();
+                    VectorXd sinAngles = angles.array().sin();
+                    VectorXd cosAngles = angles.array().cos();
+                    //Loop over points
+                    for (unsigned j = 0; j++ < nPt; ){
+                        //Assemble the matrices
+                        R = MatrixXd::Identity(ptY.rows());
+                        dR = MatrixXd::Identity(ptY.rows());
+                        R(0,0)=cosAngles(j);
+                        R(1,1)=cosAngles(j);
+                        R(0,1)=-sinAngles(j);
+                        R(1,0)= sinAngles(j);
+                        dR(0,0)=-sinAngles(j);
+                        dR(1,1)=-sinAngles(j);
+                        dR(0,1)=-cosAngles(j);
+                        dR(1,0)= cosAngles(j);
+                        R = (rit -> RotInv)*R*(rit -> Rot);
+                        dR = (-2.*(rit -> beta)*(rit->beta)*angles(j)*(rit->RotInv)*dR*(rit->Rot))*(dX.col(j)*(dX.col(j).transpose()));
+
+                        ptYd.col(j)=(R+dR)*ptYd.col(j);
+                    }
+                }
+                //Limit velocity of transformed
+
+            }
+    }
+*/
 //////////////////////////////////////////////////////////////////////////////
     struct diffeoDetails{
         VectorXd _scaling;
@@ -426,10 +495,19 @@ class targetModifier{
                 }
             }
             //////////////////////////////////////////////
+            diffeoStruct & getDiffeoStuct(){
+                return _thisDiffeo;
+            }
+            //////////////////////////////////////////////
             void setDiffeoDetailsStruct(const diffeoDetails & newDetails){
                 _thisDiffeoDetails = newDetails;
                 //Also add some asserts
             }
+            //////////////////////////////////////////////
+            diffeoDetails & getDiffeoDetailsStruct(){
+                return _thisDiffeoDetails;
+            }
+            //////////////////////////////////////////////
             //////////////////////////////////////////////
             template<typename Mat>
             void setZoneAi( const size_t i, const Mat & Ai ){
@@ -439,14 +517,17 @@ class targetModifier{
                     MatrixXd* thisMat = new MatrixXd;
                     *thisMat = MatrixXd::Identity(Ai.rows(), Ai.cols());
                     _Alist.push_back( thisMat );
+                    cout << "Addr " << thisMat << endl;
                 }
 
                 MatrixXd* thisMat = new MatrixXd;
                 *thisMat = _thisDiffeoDetails._linGainRot.transpose()*Ai*_thisDiffeoDetails._linGainRot;
                 _Alist[i] = thisMat;
+                cout << "Addr " << thisMat << endl;
+                cout << *_Alist[i] << endl;
             }
             //////////////////////////////////////////////
-            void setZoneFunction( std::function<int (VectorXd pt)> fZone ){
+            void setZoneFunction( std::function<int (const VectorXd & pt)> fZone ){
                 _fZone = fZone;
             }
             //////////////////////////////////////////////
@@ -548,7 +629,7 @@ class targetModifier{
                 nextPtX = MatrixXd::Zero(_dim, tSteps.size());
 
                 int thisZone, thisZone2;
-                MatrixXd thisA(_dim, _dim);
+                MatrixXd thisA;
 
                 double thisdT;
                 VectorXd ptPrimed(_dim);
@@ -631,12 +712,16 @@ class targetModifier{
                 nextPtXd = MatrixXd::Zero(_dim, tSteps.size());
 
                 int thisZone, thisZone2;
-                MatrixXd thisA(_dim, _dim);
+                MatrixXd thisA;
 
                 double thisdT;
                 VectorXd ptPrimed(_dim);
                 //Initialise
+                //cout << ptPrime << endl;
                 thisZone = _fZone(ptPrime);
+                //cout << thisZone << endl;
+                //cout << _Alist[thisZone] << endl;
+                //cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps[tSteps.size()-1]){
 
@@ -734,6 +819,9 @@ class targetModifier{
                 VectorXd ptPrimed(_dim);
                 //Initialise
                 thisZone = _fZone(ptPrime);
+                //cout << thisZone << endl;
+                //cout << _Alist[thisZone] << endl;
+                //cout << *_Alist[thisZone] << endl;
                 thisA = *_Alist[thisZone];
                 while (tCurr < tSteps2[tSteps2.size()-1]){
 
@@ -868,8 +956,8 @@ class targetModifier{
                 _checkFun();
             }
     };
-    
-    
+
+
     bool searchDiffeoMovement(diffeoStruct& resultDiffeo, diffeoDetails& resultDetails, const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
         //Search the geometric diffeo and set the additional informations concerning speed etc
         if (not( (targetIn.cols()==timeIn.size()) || (timeIn.size()==1) )){
@@ -912,6 +1000,122 @@ class targetModifier{
         //Call main function
         return searchDiffeoMovement(resultDiffeo, resultDetails, target, time, resultPath, aDiffeoSearchOpt);
     }
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //Modifiers
+    //Adds a list of local modifiers
+    class modifierDiffeo{
+        public:
+            DiffeoMoveObj * _aMovement;
+            diffeoStruct * _aDiffeoStruct;
+            int _numModifiers;
+            int _initialNumTrans;
+            int _dim;
+            vector<VectorXd*> _modPoints;
+            vector<VectorXd*> _modTransVects;
+            vector<double> _modScaling;
+            vector<double> _modCoeffs;
+
+            modifierDiffeo( DiffeoMoveObj & origMove ){
+                _aMovement = &origMove;
+                _aDiffeoStruct = &origMove.getDiffeoStuct();
+                _initialNumTrans = _aDiffeoStruct->numTrans;
+                _dim = _aMovement->getDimension();
+                _numModifiers = 0;
+                _modPoints.clear();
+                _modCoeffs.clear();
+                _modScaling.clear();
+                _modTransVects.clear();
+            }
+            //////
+            void toInitial(){
+                //Remove local modifiers that are appended at the end of the diffeoStruct
+                _aDiffeoStruct->numTrans = _initialNumTrans;
+                _aDiffeoStruct->centers.conservativeResize(_dim, _initialNumTrans);
+                _aDiffeoStruct->targets.conservativeResize(_dim, _initialNumTrans);
+                _aDiffeoStruct->coefs.conservativeResize(_initialNumTrans);
+                _aDiffeoStruct->divisionCoefs.conservativeResize(_initialNumTrans);
+            }
+            //////
+            void applyModification(){
+                //Append the local modifiers
+                _aDiffeoStruct->numTrans = _initialNumTrans + _numModifiers;
+                _aDiffeoStruct->centers.conservativeResize(_dim, _initialNumTrans + _numModifiers);
+                _aDiffeoStruct->targets.conservativeResize(_dim, _initialNumTrans + _numModifiers);
+                _aDiffeoStruct->coefs.conservativeResize(_initialNumTrans + _numModifiers);
+                _aDiffeoStruct->divisionCoefs.conservativeResize(_initialNumTrans + _numModifiers);
+
+                //Compute the actual values
+                for (unsigned i=0; i < _numModifiers; i++){
+                    _aDiffeoStruct->centers.col(_initialNumTrans+i) = *(_modPoints[i]);
+                    _aDiffeoStruct->targets.col(_initialNumTrans+i) = *(_modPoints[i])+_modScaling[i]*(*_modTransVects[i]);
+                    _aDiffeoStruct->coefs(_initialNumTrans+i)=_modCoeffs[i];
+                    _aDiffeoStruct->divisionCoefs(_initialNumTrans+i)=1.;
+                    cout << i << endl;
+                    cout << _aDiffeoStruct->centers.col(_initialNumTrans+i) << endl;
+                    cout << _aDiffeoStruct->targets.col(_initialNumTrans+i) << endl;
+                    //Check whether the added transformation was a diffeo
+                    if (_modCoeffs[i] > 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() ))){
+                        cout << "The modifying transformation " << i << "is __ NOT __ diffeomorphic " << endl << _modCoeffs[i] << " to " << 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() )) << endl;
+                    }else{
+                        cout << "The modifying transformation " << i << "is diffeomorphic " << endl << _modCoeffs[i] << " to " << 1./(exp(-1./2.)*sqrt(2.)*( _modScaling[i]*(*_modTransVects[i]).norm() )) << endl;
+                    }
+                }
+            }
+            //////
+            void addCorrectionPair( const VectorXd & ptX, const VectorXd & corrDirec, double deltaT, double influenceOnPoint=0.35 ){
+                //ptX: point in demonstration space forming the center point for the correction pair
+                //corrDirec: displacement direction of the transformation
+                //deltaT: Determines the influence zone
+                //influenceOnPoint: the weight of the gaussian on the center point
+                MatrixXd allPtX;
+                MatrixXd allPtXd;
+                MatrixXd allPtXdd;
+                Vector2d allT;
+                allT << 0.0, deltaT;
+                _aMovement->getTraj(allPtX, allPtXd, allPtXdd
+                , ptX, allT);
+                VectorXd tangent = allPtXd.col(0);
+                tangent.normalize();
+                double dist = (allPtX.col(1)-allPtX.col(0)).norm();
+                //Compute the centers of the transformations
+                VectorXd * pointBefore = new VectorXd;
+                *pointBefore = ptX-dist*tangent;
+                cout << "Before P" << endl << *pointBefore << endl;
+                VectorXd * pointAfter = new VectorXd;
+                *pointAfter = ptX+dist*tangent;
+                cout << "After P" << endl << *pointAfter << endl;
+                //The drection
+                VectorXd * dirBefore = new VectorXd;
+                *dirBefore = -corrDirec;
+                cout << "Before D" << endl << *dirBefore << endl;
+                VectorXd * dirAfter = new VectorXd;
+                cout << "After D" << endl << *dirAfter << endl;
+                *dirAfter = corrDirec;
+                //Attention the diffeo is applied onto !scaled! values, so
+                VectorXd ptXprime=ptX;
+                _aMovement->getDiffeoDetailsStruct().doTransform(ptXprime);
+                _aMovement->getDiffeoDetailsStruct().doTransform(*pointBefore, *dirBefore);
+                _aMovement->getDiffeoDetailsStruct().doTransform(*pointAfter, *dirAfter);
+                cout << "Before P" << endl << *pointBefore << endl;
+                cout << "After P" << endl << *pointAfter << endl;
+                cout << "Before D" << endl << *dirBefore << endl;
+                cout << "After D" << endl << *dirAfter << endl;
+                dist = (ptXprime-(*pointAfter)).norm();
+                //The coef
+                double coef = -log(influenceOnPoint)/(dist*dist);
+
+                //Store the shit
+                _numModifiers += 2;
+                _modPoints.push_back( pointBefore );
+                _modPoints.push_back( pointAfter );
+                _modTransVects.push_back( dirBefore );
+                _modTransVects.push_back( dirAfter );
+                _modCoeffs.push_back(coef);
+                _modCoeffs.push_back(coef);
+                _modScaling.push_back(0.);
+                _modScaling.push_back(0.);
+            }
+    };
 	////////////////////////////////////////////////////////////////////////////////////////
     DiffeoMoveObj searchDiffeoMovement(const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
         //Create the output

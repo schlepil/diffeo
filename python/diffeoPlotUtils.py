@@ -198,7 +198,9 @@ def simulate(diffeoPath, initPoints, tVec, name="thisTmp", path="../tmp/", stora
     
     Array2TXT(path+name, initPoints, fileType="cpp")
     Array2TXT(path+name+"Time", tVec, fileType="cpp")
-    
+    print("a")
+    print(exePath+"-fs {0} {1} {2} {3}".format(diffeoPath, name, path, storage))
+    print("b")
     proc = subprocess.Popen( exePath+"-fs {0} {1} {2} {3}".format(diffeoPath, name, path, storage), shell=True )
     pp = proc.wait()
     assert pp==0, "Childprocess failed miserably with {0}".format(pp)

@@ -1,7 +1,8 @@
 from diffeoPlotUtils import *
 
 #Get data
-target = TXT2Matrix("../dataSet/takingCube", fileType="cpp")
+#target = TXT2Matrix("../dataSet/takingCube", fileType="cpp")
+target = TXT2Matrix("../dataSet/Angle")
 dim = target.shape[0]
     
 #Define
@@ -10,9 +11,10 @@ name='thisTarget'
 #storage="../tmp/results/"
 path="../tmp/"
 storage="../tmp/results/"
-time = TXT2Vector("../dataSet/takingCubeTime", fileType="python")
-time=time[:-1].reshape(target.shape[1],)
-time=time/6.
+#time = TXT2Vector("../dataSet/takingCubeTime", fileType="python")
+#time=time[:-1].reshape(target.shape[1],)
+#time=time/6.
+time = np.linspace(1.,0.,target.shape[1])
 
 #Get diffeo and transform
 tauSource = findDiffeoAndReturnTransformed(target, name=name, path=path, storage=storage, time=time)
@@ -49,7 +51,7 @@ data2Trans, data2VelTrans = transform(data2, diffeoPath=storage+name+"/", veloci
 
 #Simulate the behaviour of some neighbooring initial points
 initPoints = .1*(np.random.rand(dim, 10)-0.5)+target[:,[0]];
-    
+print(initPoints)
 tVec = np.linspace(0.0, time[0]*1.25, 1000);
 posSim, velSim, accSim = simulate(diffeoPath=storage+name+"/", initPoints=initPoints, tVec=tVec, name="tmpSim", path=path, storage=storage)
 
