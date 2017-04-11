@@ -18,10 +18,15 @@ using namespace DiffeoMovements;
 int main(int argc, char* argv[])
 {
     //Get some parameters
-    diffeoSearchOpts theseOptions = diffeoSearchOpts(100);
+    diffeoSearchOpts theseOptions = diffeoSearchOpts(50);
 
     //Change the scaling
     theseOptions.thisScalingMethod = maximal;
+    theseOptions.maxCoef = .9;
+    VectorXd thisList = VectorXd::Zero(7);
+	thisList << 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6;
+    theseOptions.setSafeCoefList(thisList);
+    theseOptions.regularise = .5e-3;
 
     //Different modifiers for 2d data
     //Goal 0: 0;0
@@ -60,15 +65,7 @@ int main(int argc, char* argv[])
     }
 
     if (argc<3){
-      string exec(argv[0]);
-      cout << "Usage:" << endl;
-      cout << "\t" << exec << " -s [search] targetLine storageFolder path" << endl;
-      cout << "\t" << exec << " -a [apply] diffeoPath source result direction" << endl;
-      cout << "\t" << exec << " -a [apply] diffeoPath sourcePoints sourceVelocity result direction" << endl;
-      cout << "\t" << exec << " -fs" << endl;
-      cout << "\t" << exec << " -gv" << endl;
-
-      throw runtime_error("Wrong number of args");
+        throw runtime_error("Wrong number of args");
     }
 
     //Simple interface
@@ -250,21 +247,6 @@ int main(int argc, char* argv[])
         thisMovement.setZoneFunction(ret0());
         thisMovement.setScaleFunc(standardScale());
 
-        //Get the new modifier
-        if (thisMovement.getDimension()==2){
-            cout << thisMovement.getDiffeoStuct().centers.transpose() << endl;
-            modifierDiffeo myMod(thisMovement);
-            Vector2d pt;
-            pt<<-15,25;
-            Vector2d cDir;
-            cDir << 1.,1.;
-            myMod.addCorrectionPair(pt, cDir, 0.05, 0.75);
-            myMod._modScaling[0]=1.;
-            myMod._modScaling[1]=1.;
-            myMod.applyModification();
-            cout << thisMovement.getDiffeoStuct().centers.transpose() << endl;
-        }
-
         MatrixXd resPos;
         MatrixXd resVel;
         MatrixXd resAcc;
@@ -273,7 +255,6 @@ int main(int argc, char* argv[])
         for (size_t i=0; i<(size_t)initPointsMat.cols();++i){
             //If the dimension is 2, set one of the modifiers
             if (dim == 2){
-                //thisMovement.setTargetModifier(&allTargMods[ (i%3) ]);
                 thisMovement.setTargetModifier(&allTargMods[ 0 ]);
             }
 
@@ -303,28 +284,13 @@ int main(int argc, char* argv[])
         DiffeoMoveObj thisMovement;
         thisMovement.loadFolder(diffeoPath);
         thisMovement.doInit();
-        if (pts.rows()==2){
-            Matrix2d eV = Matrix2d::Zero();
-            eV(0,0)=1.;
-            eV(1,1)=2.;
-            thisMovement.setZoneAi(0, -eV);
-            eV(0,0)=1.;
-            eV(1,1)=.05;
-            thisMovement.setZoneAi(1, -eV);
-            eV(0,0)=1.;
-            eV(1,1)=1.;
-            thisMovement.setZoneAi(2, -eV);
-            VectorXi zoneNmbr(3);
-            VectorXd zoneDiam(3);
-            zoneNmbr << 0,1,2;
-            zoneDiam << 0.8,2.25,2.75;
-            sphericalZones thisZone = sphericalZones(zoneDiam, zoneNmbr);
-            thisMovement.setZoneFunction(thisZone);
-        }else{
-            cout << "DIM is "<< thisMovement.getDimension() << endl;
-            thisMovement.setZoneAi(0,-MatrixXd::Identity(thisMovement.getDimension(),thisMovement.getDimension()));
-            thisMovement.setZoneFunction(ret0());
-        }
+
+        Matrix2d eV = Matrix2d::Zero();
+        eV(0,0)=1.;
+        eV(1,1)=.2;
+        thisMovement.setZoneAi(0, -eV);
+        thisMovement.setZoneFunction(ret0());
+
         thisMovement.setScaleFunc(standardScale());
 
         MatrixXd vel = thisMovement.getVelocity(pts, whichSpace);
@@ -335,4 +301,5 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
+
 
