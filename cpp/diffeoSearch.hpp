@@ -1,6 +1,8 @@
 #ifndef DIFFEO_SEARCH_HPP
 #define DIFFEO_SEARCH_HPP
 
+#include <iterator>     // std::istream_iterator
+
 #include <math.h>
 
 #include "diffeoMethods.hpp"
@@ -8,6 +10,8 @@
 
 #include <Eigen/SVD>
 #include <Eigen/Eigenvalues>
+
+#include <tinyxml.h>
 
 using namespace std;
 using namespace Eigen;
@@ -63,6 +67,62 @@ namespace DiffeoMethods{
                 thisScalingMethod = each;
 
                 this->doInterpolate();
+            }
+            diffeoSearchOpts(const string & xmlFileName):numIterations(_numIterations), isUpToDate(_isUpToDate){
+                //Load the options stored in a xml
+
+                int buffI;
+
+                _isUpToDate = false;
+
+                //Get the xml
+                TiXmlDocument doc = TiXmlDocument(xmlFileName);
+                if(!doc.LoadFile()){
+                    cerr << "Error while opening file" << endl;
+                    cerr << "error #" << doc.ErrorId() << " : " << doc.ErrorDesc() << endl;
+                    throw;
+                }
+                TiXmlHandle hDoc(&doc);
+                TiXmlHandle xmlOpts = hDoc.FirstChildElement("diffeo").FirstChildElement("searchOpts");
+                xmlOpts.FirstChildElement("maxTrans").Element()->QueryIntAttribute("value", &(this->_numIterations));
+                xmlOpts.FirstChildElement("maxCoef").Element()->QueryDoubleAttribute("value", &(this->maxCoef));
+                xmlOpts.FirstChildElement("convCrit").Element()->QueryDoubleAttribute("value", &(this->convCrit));
+                xmlOpts.FirstChildElement("regularise").Element()->QueryDoubleAttribute("value", &(this->regularise));
+                xmlOpts.FirstChildElement("scalingMethod").Element()->QueryIntAttribute("value", &buffI);
+                thisScalingMethod = static_cast<scalingMethod>(buffI); //tbuffI must be 0-2 for each, minimal, maximal
+
+
+                //now get the interpolation stuff
+                TiXmlHandle xmlInter = hDoc.FirstChildElement("diffeo").FirstChildElement("searchOpts").FirstChildElement("interpolation");
+                int nPoints;
+                string divCoefStr;
+                string safeCoefStr;
+                xmlInter.FirstChildElement("basePointsNr").Element()->QueryIntAttribute("value", &nPoints);
+                xmlInter.FirstChildElement("divisionCoef").Element()->QueryStringAttribute("value", &divCoefStr);
+                xmlInter.FirstChildElement("safeCoef").Element()->QueryStringAttribute("value", &safeCoefStr);
+
+                _points = VectorXd::LinSpaced(nPoints, 0, _numIterations-1).cast<int>();
+                //This should not be necessary but somehow 149 (as double) is cast to 148 (as int)
+                _points(0)=0;
+                _points(_points.size()-1)=_numIterations-1;
+
+                _divisionCoefList = VectorXd::Zero(nPoints);
+                _safeCoefList = VectorXd::Zero(nPoints);
+                //Get values in string; Transform to string stream first
+                istringstream divCoefSStr(divCoefStr);
+                istringstream safeCoefSStr(safeCoefStr);
+                istream_iterator<double> divCoefIt(divCoefSStr);
+                istream_iterator<double> safeCoefIt(safeCoefSStr);
+                double buff;
+                for (int j=0; j<nPoints; ++j){
+                    buff = *divCoefIt; _divisionCoefList(j)=buff;
+                    buff = *safeCoefIt; _safeCoefList(j)=buff;
+                    divCoefIt++;
+                    safeCoefIt++;
+                }
+
+                this->doInterpolate();
+
             }
             /////////////////////////////////////////////////
             void setAnchorPoints(const VectorXi & newPoints){

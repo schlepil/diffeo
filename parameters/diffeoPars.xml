@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<diffeo>
+  <dynamics>
+    <eigenValOrtho  value="-2."/>
+    <breakTime value="0.05"/>
+  </dynamics>
+  <generalOpts>
+    <inputPath value="../temp/input/"/>
+    <resultPath value ="../temp/result/"/>
+    <targetName value="thisTarget"/>
+    <targetTime value="thisTime"/>
+  </generalOpts>
+  <searchOpts>
+    <maxTrans  value="60"/>
+    <maxCoef value=".8"/>
+    <convCrit value="1.e-6"/>
+    <regularise value=".1e-3"/>
+    <scalingMethod value="2"/>
+    <interpolation>
+      <basePointsNr value = "3"/>
+      <divisionCoef value="3. 2. 1.2"/>
+      <safeCoef value="0.6 0.6 0.6"/>
+    </interpolation>
+  </searchOpts>
+</diffeo>

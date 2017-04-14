@@ -1,6 +1,7 @@
 #ifndef DIFFEO_METHODS_HPP
 #define DIFFEO_METHODS_HPP
 
+#include <stdlib.h>
 #include<iostream>
 #include <math.h>
 
@@ -40,6 +41,8 @@ namespace DiffeoMethods{
                 std::cout << "writeMode is either cpp or python" << endl;
                 return false;
             }
+
+            (void) system( ("mkdir -p "+folder+"/diffeo/details").c_str() );
 
             VectorXd thisNumTrans(1);
             thisNumTrans(0) = numTrans;

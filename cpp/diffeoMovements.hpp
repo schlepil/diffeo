@@ -248,7 +248,7 @@ namespace DiffeoMovements{
         bool toFolder(const string & path){
 
             //Make the subdir but not the path
-            (void) system( ("mkdir "+path+"/diffeo/details").c_str() );
+            (void) system( ("mkdir -p "+path+"/diffeo/details").c_str() );
             //Check how to catch errors here
 
             Leph::WriteMatrix(path+"/diffeo/details/linGainRot.txt", _linGainRot, 32, "cpp");
@@ -323,7 +323,7 @@ class targetModifier{
         }
         ////////////////////////////////////////////
         void setNewTranslation(const VectorXd & newTranslation ){
-            _translation = -newTranslation;
+            _translation = newTranslation;
             _deltaForwardTransform = _translation+_anchorPoint;
         }
         ////////////////////////////////////////////
@@ -410,7 +410,18 @@ class targetModifier{
             targetModifier * _thisModifier;
 
             ///////////////////////////////////////////////
-            DiffeoMoveObj(int dim = -1, double finishedNorm = 0.05):isFinished(_isFinished){
+            DiffeoMoveObj():isFinished(_isFinished){
+
+                _Alist.clear();
+                _fZone = ret0();
+                _isInit = false;
+                _dim = -1;
+                _thisModifier = nullptr;
+                _isFinished = false;
+                _finishedNormSquare = 0.05*0.05;//#TBD do sth smarter to check  finished Hardcoded
+            }
+            ///////////////////////////////////////////////
+            DiffeoMoveObj(int dim, double finishedNorm = 0.05):isFinished(_isFinished){
 
                 _Alist.clear();
                 _fZone = ret0();
@@ -428,7 +439,12 @@ class targetModifier{
                 //Add some assertions here
                 _isInit = false;
             }
-
+            //////////////////////////////////////////////
+            void toFolder(const std::string & aFolder)
+            {
+                _thisDiffeo.toFolder(aFolder);
+                _thisDiffeoDetails.toFolder(aFolder);
+            }
             //////////////////////////////////////////////
             void doInit(){
 
@@ -548,12 +564,52 @@ class targetModifier{
                 }
             }
             //////////////////////////////////////////////
-            MatrixXd getVelocity( MatrixXd & pt,  const spaces & thisSpace=demonstration){
+            //void setNewTranslation(const VectorXd & newTranslation )
+            //This is not how one wants this to be done if coding properly
+            //but i refrain from exposing the modifiers to python at the moment
+            int setNewTranslationPy(double * newTranslationPtr){
+                if(!_thisModifier){
+                    cout << "Can not set a new translation for a modifier that does not exist!" << endl;
+                    return 1; //Failed to set
+                }
+                //"Useless" copy
+                VectorXd newTranslationVec(_dim);
+                for (size_t i=0; i<_dim; ++i){
+                    newTranslationVec(i) = newTranslationPtr[i];//No verification is performend
+                }
+                _thisModifier->setNewTranslation(newTranslationVec);
+                return 0;
+            }
+            //////////////////////////////////////////////
+            //This is a convenience function for python interface; its not the most efficient but will do for the moment
+            //This does 0 verification what so ever so be reasonnably careful
+            void getVelocityPy(double * ptPtr, double *velPtr, unsigned int thisSpaceAsInt=0){
+                //Get a single point as array pointer and the according space (0 for demonstration; 1 for control)
+                //and computes the corresponding veloctiy and puts it into the designed place
+                //Get the values from the pointer
+                VectorXd pt(_dim);
+                VectorXd vel(_dim);
+                size_t i;
+                spaces thisSpace = static_cast<spaces>(thisSpaceAsInt); //thisSpaceAsInt must be 0 or 1
+                for (i=0; i<_dim; ++i){
+                    pt(i) = ptPtr[i];
+                }
+                vel = getVelocity(pt, thisSpace);
+                //Put it into the array
+                for (i=0; i<_dim; ++i){
+                    velPtr[i] = vel(i);
+                }
+                return;
+            }
+
+            //////////////////////////////////////////////
+            template<typename MoV1>
+            MatrixXd getVelocity( MoV1 & pt,  const spaces & thisSpace=demonstration){
 
                 //Get the velocity of points in the control or demonstration space
                 const size_t dim = pt.rows();
                 const size_t nPt = pt.cols();
-                MatrixXd vel = MatrixXd::Zero(dim, nPt);
+                MoV1 vel = MoV1::Zero(dim, nPt);
                 VectorXd thisVel = VectorXd::Zero(dim);
                 //Transform from demonstration to control
                 if(thisSpace==demonstration){
@@ -1119,11 +1175,11 @@ class targetModifier{
 	////////////////////////////////////////////////////////////////////////////////////////
     DiffeoMoveObj searchDiffeoMovement(const MatrixXd & targetIn, const VectorXd & timeIn = VectorXd::Ones(1), const string & resultPath="", diffeoSearchOpts & opts= aDiffeoSearchOpt){
         //Create the output
-        DiffeoMoveObj resultDiffeoObj;
+        DiffeoMoveObj resultDiffeoObj = DiffeoMoveObj();
         diffeoStruct resultDiffeo;
         diffeoDetails resultDetails;
         //Call main function
-        if (not searchDiffeoMovement(resultDiffeo, resultDetails, targetIn, timeIn, resultPath, aDiffeoSearchOpt)){
+        if (not searchDiffeoMovement(resultDiffeo, resultDetails, targetIn, timeIn, resultPath, opts)){
             throw runtime_error("Matching failed");
         };
         resultDiffeoObj.setDiffeoStruct(resultDiffeo);
@@ -1143,7 +1199,7 @@ class targetModifier{
             cerr << "Assuming no time given" << endl;
             time = VectorXd::Ones(1); time(0) = 1.;
         }
-        return searchDiffeoMovement(target, time, resultPath, aDiffeoSearchOpt);
+        return searchDiffeoMovement(target, time, resultPath, opts);
     }
 }
 
