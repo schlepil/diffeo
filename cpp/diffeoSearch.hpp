@@ -37,8 +37,10 @@ namespace DiffeoMethods{
 
         public:
             double maxCoef, convCrit, regularise;
+            double alpha;
             const int & numIterations;
             const bool & isUpToDate;
+            VectorXd  * distanceScalingVector;
             scalingMethod thisScalingMethod;
 
             diffeoSearchOpts(const int numIterationsIn=150):numIterations(_numIterations), isUpToDate(_isUpToDate){
@@ -66,6 +68,9 @@ namespace DiffeoMethods{
 
                 thisScalingMethod = each;
 
+                alpha = 1.;
+                distanceScalingVector = nullptr;
+
                 this->doInterpolate();
             }
             diffeoSearchOpts(const string & xmlFileName):numIterations(_numIterations), isUpToDate(_isUpToDate){
@@ -88,6 +93,7 @@ namespace DiffeoMethods{
                 xmlOpts.FirstChildElement("maxCoef").Element()->QueryDoubleAttribute("value", &(this->maxCoef));
                 xmlOpts.FirstChildElement("convCrit").Element()->QueryDoubleAttribute("value", &(this->convCrit));
                 xmlOpts.FirstChildElement("regularise").Element()->QueryDoubleAttribute("value", &(this->regularise));
+                xmlOpts.FirstChildElement("alphaDistCoef").Element()->QueryDoubleAttribute("value", &(this->alpha));
                 xmlOpts.FirstChildElement("scalingMethod").Element()->QueryIntAttribute("value", &buffI);
                 thisScalingMethod = static_cast<scalingMethod>(buffI); //tbuffI must be 0-2 for each, minimal, maximal
 
@@ -120,6 +126,8 @@ namespace DiffeoMethods{
                     divCoefIt++;
                     safeCoefIt++;
                 }
+
+                distanceScalingVector = nullptr;
 
                 this->doInterpolate();
 
@@ -207,9 +215,25 @@ namespace DiffeoMethods{
                 safe = _safeCoefs;
                 return _isUpToDate;
             }
+            ///////////////////////////////////////////////
+            void setDistanceCoef(const MatrixXd & pt){
+                //Get the division coef for the  given alpha
+                const int dim = pt.rows();
+                const int nPt = pt.cols();
+                distanceScalingVector = new VectorXd;
+                *distanceScalingVector = VectorXd::Ones(nPt);
+                //Normalized left and right velocity
+                MatrixXd leftDiff = (pt.middleCols(1,nPt-2) - pt.middleCols(0,nPt-2)).colwise().normalized();
+                MatrixXd rightDiff = (pt.middleCols(2,nPt-2) - pt.middleCols(1,nPt-2)).colwise().normalized();
+                //Columnwise dot product, so v(i) = dot(A.col(i), B.col(i))
+                //The total coeff is c(i) = 0.5*(1+alpha*dot(A.col(i), B.col(i)))
+                distanceScalingVector->segment(1,nPt-2) = (leftDiff.cwiseProduct(rightDiff)).colwise().sum();
+                *distanceScalingVector = 0.5*(VectorXd::Ones(nPt)+alpha*(*distanceScalingVector));
+                return;
+            }
     };
     //Get a dummy
-    diffeoSearchOpts aDiffeoSearchOpt;
+    diffeoSearchOpts aDiffeoSearchOpt = diffeoSearchOpts();
 
 
     /////////////////////////////////////////////
@@ -411,6 +435,11 @@ namespace DiffeoMethods{
         int idMax;
         double distMax;
         double coefUpper;
+        VectorXd * buffDist;
+        if (opts.distanceScalingVector){
+            buffDist = new VectorXd(nPoints);
+            *buffDist = VectorXd::Zero(nPoints);
+        }
 
         //Get the struct used as functor
         basicCost thisCost;
@@ -422,7 +451,16 @@ namespace DiffeoMethods{
         int i;
         for (i=0; i<numIt-1; ++i){
             //distMax = (target-current).array().square().colwise().sum().maxCoef(&idMax);
-            distMax = (target-current).colwise().squaredNorm().maxCoeff(&idMax);
+            //Introduce the new option
+            if (opts.distanceScalingVector){
+                //A scaling vector exists
+                *buffDist = (target-current).colwise().squaredNorm();
+                (void) (buffDist->cwiseProduct(*opts.distanceScalingVector)).maxCoeff(&idMax);
+                distMax = (*buffDist)(idMax);
+            }else{
+                //Default to old version
+                distMax = (target-current).colwise().squaredNorm().maxCoeff(&idMax);
+            }
 
             //Check if converged                return largestSingularValue/((double)current.cols())+(*regularisation)*thisCoef*thisCoef;
 

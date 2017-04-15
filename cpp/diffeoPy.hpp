@@ -71,6 +71,12 @@ DiffeoMoveObj* saveDiffeoToFolder(){
     MatrixXd targetIn = Leph::ReadMatrix(inputPath+targetName);
     VectorXd timeIn = Leph::ReadVector(inputPath+targetTime);
 
+    //Get the scaling vector in the search opts
+    theseOptions.setDistanceCoef(targetIn);
+
+    cout << "The scaling coefficientis " << theseOptions.alpha << endl << "resulting coefs are " << endl << *theseOptions.distanceScalingVector << endl;
+
+
     DiffeoMoveObj * thisMove = new DiffeoMoveObj();
     diffeoStruct * thisDiffeo = new diffeoStruct();
     diffeoDetails * thisDetails = new diffeoDetails();
