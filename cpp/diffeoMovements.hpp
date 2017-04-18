@@ -583,10 +583,11 @@ class targetModifier{
             //////////////////////////////////////////////
             //This is a convenience function for python interface; its not the most efficient but will do for the moment
             //This does 0 verification what so ever so be reasonnably careful
-            void getVelocityPy(double * ptPtr, double *velPtr, unsigned int thisSpaceAsInt=0){
+            void getVelocityPy(double * ptPtr, double *velPtr, unsigned long nPt, unsigned int thisSpaceAsInt=0){
                 //Get a single point as array pointer and the according space (0 for demonstration; 1 for control)
                 //and computes the corresponding veloctiy and puts it into the designed place
                 //Get the values from the pointer
+                /*
                 VectorXd pt(_dim);
                 VectorXd vel(_dim);
                 size_t i;
@@ -599,9 +600,55 @@ class targetModifier{
                 for (i=0; i<_dim; ++i){
                     velPtr[i] = vel(i);
                 }
-                return;
+                */
+                Map<Matrix<double,_dim,nPt>> pt = Map<Matrix<double,_dim,nPt>>(ptPtr);
+                Map<Matrix<double,_dim,nPt>> vel= Map<Matrix<double,_dim,nPt>>(velPtr);
+                getVelocity(pt, vel, thisSpace);
+
+                return void();
             }
 
+            //////////////////////////////////////////////
+            //////////////////////////////////////////////
+            MatrixXd getVelocity( Ref<MatrixXd> pt, Ref<MatrixXd> vel const spaces & thisSpace=demonstration){
+
+                //Get the velocity of points in the control or demonstration space
+                const size_t dim = pt.rows();
+                const size_t nPt = pt.cols();
+                VectorXd thisVel = VectorXd::Zero(dim);
+                //Transform from demonstration to control
+                if(thisSpace==demonstration){
+                    if(_thisModifier){
+                        _thisModifier->doTransform(pt);
+                    }
+                    _thisDiffeoDetails.doTransform(pt);
+                    reverseDiffeo(pt, _thisDiffeo);
+                }
+                //This might turn a bit slow because zone and scale have to be caled each time; But maybe it's not that bad
+                //Loop over all points
+                for (size_t i=0; i<(size_t)pt.cols(); ++i){
+                        //cout << _fZone(pt.col(i)) << endl;
+                        thisVel = (*_Alist[_fZone(pt.col(i))])*((pt.col(i)));
+                        _scaleFunc(pt.col(i), thisVel, _thisDiffeoDetails._controlSpaceVelocity, _breakTime, 1. );
+                        vel.col(i) = thisVel;
+                }
+                //From control to demonstration
+                if(thisSpace==demonstration){
+                    /*
+                    //Apply jacobian #TBD make sure that the stored jacobian is the actually the jacobian of the diffeo and not its inverse
+                    for (size_t i=0; i<(size_t)pt.cols(); ++i){
+                        vel.col(i) = theseJacs[i]*vel.col(i);
+                    }
+                    */
+                    //Transform points and velocities back to demonstration space
+                    forwardDiffeoVel(pt, vel, _thisDiffeo);
+                    _thisDiffeoDetails.undoTransformVel(vel);
+                    if(_thisModifier){
+                        _thisModifier->undoTransformVel(vel);
+                    }
+                }
+                return;
+            }
             //////////////////////////////////////////////
             template<typename MoV1>
             MatrixXd getVelocity( MoV1 & pt,  const spaces & thisSpace=demonstration){

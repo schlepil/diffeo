@@ -91,6 +91,7 @@ namespace DiffeoMethods{
     * and V = (target-center)/divisionCoef
     */
     //#TBD schlepil check if && aka rvalue reference behaves as expected
+    /*
     template<typename V1, typename V2, typename M1>
     inline void iterativeFunction(const V1 & center, const V2 & target, M1 & pt, const double & divisionCoef, const double & coef){
 
@@ -110,6 +111,27 @@ namespace DiffeoMethods{
 
         pt += helper1.cwiseProduct(helper2);
     }
+    */
+
+    inline void iterativeFunction(const Ref<const VectorXd> center, const Ref<const VectorXd> target, Ref<MatrixXd> pt, const double & divisionCoef, const double & coef){
+
+        assert(center.rows() == pt.rows() && "Points to be transformed do not have the same dimension as center and target");
+        assert(center.rows() == target.rows() && "Inconsistent");
+        assert(center.cols() == 1 && target.cols()==1 && "Inconsistent");
+
+        const int M = pt.rows();
+        const int N = pt.cols();
+
+        MatrixXd result = coef*(pt.colwise() - center);
+        result = -result.cwiseProduct(result);
+
+        //I hope this can be done more efficiently
+        MatrixXd helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
+        MatrixXd helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
+
+        pt += helper1.cwiseProduct(helper2);
+    }
+
     //////////////////////
     /*
     *Same as iterative function but also calculating the jacobian of each point
@@ -153,6 +175,7 @@ namespace DiffeoMethods{
     *so
     *d/(d pt) tau(pt) = J_pt(tau) = Identity - 2*coef^2*exp(-coef^2.||pt-center||_2^2)*V.(pt-center)
     */
+    /*
     template<typename V1, typename M1>
     inline void iterativeFunctionVel(const V1 & center, const V1 & target, M1 & pt, M1 & vel, const double divisionCoef, const double coef){
 
@@ -168,6 +191,32 @@ namespace DiffeoMethods{
         //I hope this can be done more efficiently
         M1 helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
         M1 helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
+
+        //Calculate jacobians if necessary
+        MatrixXd thisId = MatrixXd::Identity(M,M);
+        Matrix<double,-1,1> V = helper1.col(0);
+        M1 deltaPos = pt.colwise()-center;
+        for (size_t i=0; i<N; i++){
+            vel.col(i) = (thisId - helper2(0,i)*2.*coef*coef*V*( deltaPos.col(i).transpose() ))*vel.col(i);
+        }
+
+        pt += helper1.cwiseProduct(helper2);
+    }*/
+    template<typename Vref, typename Mref>
+    inline void iterativeFunctionVel(const Ref<const Vref> center, const Ref<const Vref>  target, Ref<Mref>  pt, Ref<Mref> vel, const double divisionCoef, const double coef){
+
+        assert(center.rows() == pt.rows() && "Points to be transformed do not have the same dimension as center and target");
+        assert(coef>0. && "coef needs to be positive");
+
+        const size_t M = pt.rows();
+        const size_t N = pt.cols();
+
+        Mref result = coef*(pt.colwise() - center);
+        result = -result.cwiseProduct(result);
+
+        //I hope this can be done more efficiently
+        Mref helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
+        Mref helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
 
         //Calculate jacobians if necessary
         MatrixXd thisId = MatrixXd::Identity(M,M);
