@@ -7,6 +7,7 @@
 
 #include "diffeoMethods.hpp"
 #include "thingsThatShouldExist.hpp"
+#include "FileVector.h"
 
 #include <Eigen/SVD>
 #include <Eigen/Eigenvalues>
@@ -16,6 +17,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace thingsThatShouldExist;
+using namespace Leph;
 
 namespace DiffeoMethods{
 
@@ -77,6 +79,7 @@ namespace DiffeoMethods{
                 //Load the options stored in a xml
 
                 int buffI;
+                string distanceScalingStr;
 
                 _isUpToDate = false;
 
@@ -95,6 +98,7 @@ namespace DiffeoMethods{
                 xmlOpts.FirstChildElement("regularise").Element()->QueryDoubleAttribute("value", &(this->regularise));
                 xmlOpts.FirstChildElement("alphaDistCoef").Element()->QueryDoubleAttribute("value", &(this->alpha));
                 xmlOpts.FirstChildElement("scalingMethod").Element()->QueryIntAttribute("value", &buffI);
+                xmlOpts.FirstChildElement("distanceScaling").Element()->QueryStringAttribute("value", &distanceScalingStr);
                 thisScalingMethod = static_cast<scalingMethod>(buffI); //tbuffI must be 0-2 for each, minimal, maximal
 
 
@@ -127,7 +131,23 @@ namespace DiffeoMethods{
                     safeCoefIt++;
                 }
 
-                distanceScalingVector = nullptr;
+
+                //Get scaling vector stuff
+                //if the distanceScaling is "manual" no automatic action will be performed
+                //if it is not "manual" the string is interpreted as a inputfile name
+                //the operation will fail if the file can not be loaded
+                cout << distanceScalingStr << endl;
+                if (distanceScalingStr.compare("manual") == 0){
+                    distanceScalingVector = nullptr;
+                }else{
+                    string inputPath;
+                    xmlOpts = hDoc.FirstChildElement("diffeo").FirstChildElement("generalOpts");
+                    xmlOpts.FirstChildElement("inputPath").Element()->QueryStringAttribute("value", &inputPath);
+                    distanceScalingVector = new VectorXd(nPoints);
+                    *distanceScalingVector = ReadVector(inputPath+distanceScalingStr);
+                    cout << "read scaling from " << inputPath+distanceScalingStr << "resulting in\n" << *distanceScalingVector << endl;
+                }
+
 
                 this->doInterpolate();
 

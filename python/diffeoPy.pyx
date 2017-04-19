@@ -65,9 +65,10 @@ cdef extern from "diffeoMovements.hpp":
         void doInit() #do some internal initialisation
         void loadFolder(const string & aFolder) #Load the diffeo stored in a folder
         void toFolder(const string & aFolder) #and the corresponding details (Mainly for dynamics and some numerical hacks)
-        void getVelocityPy(double * ptPtr, double *velPtr, unsigned int thisSpaceAsInt) #Important for you: Returns the desired velocity given a point (in the defined space)
+        void getVelocityPy(double * ptPtr, double *velPtr, unsigned long nPt, unsigned int thisSpaceAsInt) #Important for you: Returns the desired velocity given a point (in the defined space)
         int setNewTranslationPy(double * newTranslationPtr) #Moving target
-        void setBreakTime( const double & newBreakTime ) #Sets the "size" of the sphere around the target when to start decellarating
+        void setBreakTime( const double & newBreakTime ) #Sets the "size" of the sphere around the target when to start decelerating
+        const int getDimension() #Return the dimension of the dynamical system
 
 cdef extern from "diffeoPy.hpp":
     DiffeoMoveObj* saveDiffeoToFolder()
@@ -86,14 +87,17 @@ cdef class PyDiffeoMoveObj:
     def doInit(self):
         self.cDM.doInit() #From the doc: . can be used on objects and pointers to objects
         return 0;
+    def getDimension(self):
+        return self.cDM.getDimension()
     def loadFolder(self, str folderPath):
         #I have no clue if that is the best way but it seems to work
         self.cDM.loadFolder(<string> bytes(folderPath, 'utf-8'))
-    def getVelocity(self, np.ndarray[np.float64_t, ndim=1, mode = 'c'] xIn, np.ndarray[np.float64_t, ndim=1, mode = 'c'] vOut=np.zeros(0), whichSpace = 0):
+    def getVelocity(self, np.ndarray[np.float64_t, mode = 'fortran'] xIn, np.ndarray[np.float64_t, mode = 'fortran'] vOut=np.zeros((0,), dtype=np.float64, order='F'), whichSpace = 0):
         #ATTENTION this function is designed for double precision vectors of the "right" size; No size check-up is performed
         #It will stock the results in the vOut vector if provided; if not provided than a new one
         #will be created (with the overhead associated)
-        
+        #The gain performance, correct parameter types are demanded instead of being ensured
+        print("xPy:\n{0}".format(xIn))
         assert (whichSpace in [0,1]), "which space has to be 0 or 1"
         whichSpaceC = <unsigned int> whichSpace
         #If no input is given
@@ -103,7 +107,7 @@ cdef class PyDiffeoMoveObj:
         #Get pointers and call actual c function
         cdef double * xPtr = <double *> xIn.data
         cdef double * vPtr = <double *> vOut.data
-        self.cDM.getVelocityPy(xPtr, vPtr, whichSpaceC)
+        self.cDM.getVelocityPy(xPtr, vPtr, <unsigned long> xIn.size//self.cDM.getDimension(), whichSpaceC)
         return vOut
     
     def setNewTranslation(self, np.ndarray[np.float64_t, ndim=1, mode = 'c'] newOffset ):

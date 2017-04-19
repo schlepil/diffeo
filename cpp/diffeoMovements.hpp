@@ -26,7 +26,7 @@ namespace DiffeoMovements{
     //Return 0
     //#TBD find a template free way to accept Matrices and Vectors and return either int or vector of int for zone functions
     struct ret0{
-        inline int operator() (const VectorXd & ptX) const { return 0; };
+        inline int operator() (const Ref<const VectorXd> ptX) const { return 0; };
     };
 
     class sphericalZones{
@@ -73,7 +73,7 @@ namespace DiffeoMovements{
 
         //The zones are concentric circles (in which ever space considered). The current zone is the smallest circle containing the point
         //diameter is in ascending order
-        inline int operator() (const VectorXd & pt) const {
+        inline int operator() (const Ref<const VectorXd> pt) const {
             double thisNorm = pt.squaredNorm();
             for (size_t i=0; i<_size; ++i){
                 if (thisNorm <= _diametersSquared(i)){
@@ -93,8 +93,9 @@ namespace DiffeoMovements{
     #TBD: Try to template the size to enhance perfs
     */
     struct standardScale{
-        template<typename VM1>
-        inline void operator () (const VM1 & ptY, VM1 & ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
+        //template<typename VM1>
+        //inline void operator () (const VM1 & ptY, VM1 & ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
+        inline void operator () (const Ref<const MatrixXd> ptY, Ref<MatrixXd> ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
 
             VectorXd ptYNorm = ptY.colwise().norm(); //Each column is treated as the velocity associated to a point
             ptYNorm = ptYNorm.array() + 1e-9;
@@ -206,40 +207,48 @@ namespace DiffeoMovements{
         }
 
         //Perform the translation/scaling action
-        template<typename VoM>
-        inline void doTransform(VoM & points){
+        //template<typename VoM>
+        //inline void doTransform(VoM & points){
+        inline void doTransform(Ref<MatrixXd> points){
             points = (points.colwise()-_offset).cwiseQuotient( (_scaling.replicate(1,points.cols())) );
         }
-        template<typename VoM1, typename VoM2>
-        inline void doTransform(VoM1 & points, VoM2 & velocity){
+        //template<typename VoM1, typename VoM2>
+        //inline void doTransform(VoM1 & points, VoM2 & velocity){
+        inline void doTransform(Ref<MatrixXd> points, Ref<MatrixXd> velocity){
             points = (points.colwise()-_offset).cwiseQuotient( (_scaling.replicate(1,points.cols())) );
             velocity = velocity.cwiseQuotient( (_scaling.replicate(1,velocity.cols())) );
         }
-        template<typename VoM1, typename VoM2>
-        inline void doTransformVel(VoM1 & velocity){
+        //template<typename VoM1, typename VoM2>
+        //inline void doTransformVel(VoM1 & velocity){
+        inline void doTransformVel(Ref<MatrixXd> velocity){
             velocity = velocity.cwiseQuotient( (_scaling.replicate(1,velocity.cols())) );
         }
-        template<typename VoM1, typename VoM2, typename VoM3>
-        inline void doTransform(VoM1 & points, VoM2 & velocity, VoM3 & accleration){
+        //template<typename VoM1, typename VoM2, typename VoM3>
+        //inline void doTransform(VoM1 & points, VoM2 & velocity, VoM3 & accleration){
+        inline void doTransform(Ref<MatrixXd> points, Ref<MatrixXd> velocity, Ref<MatrixXd> accleration){
             points = (points.colwise()-_offset).cwiseQuotient( (_scaling.replicate(1,points.cols())) );
             velocity = velocity.cwiseQuotient( (_scaling.replicate(1,velocity.cols())) );
             accleration = velocity.cwiseQuotient( (_scaling.replicate(1,accleration.cols())) );
         }
-        template<typename VoM>
-        inline void undoTransform(VoM & points){
+        //template<typename VoM>
+        //inline void undoTransform(VoM & points){
+        inline void undoTransform(Ref<MatrixXd> points){
             points = (points.cwiseProduct( (_scaling.replicate(1, points.cols())) )).colwise() + _offset;
         }
-        template<typename VoM1, typename VoM2>
-        inline void undoTransform(VoM1 & points, VoM2 & velocity){
+        //template<typename VoM1, typename VoM2>
+        //inline void undoTransform(VoM1 & points, VoM2 & velocity){
+        inline void undoTransform(Ref<MatrixXd> points, Ref<MatrixXd> velocity){
             points = (points.cwiseProduct( (_scaling.replicate(1, points.cols())) )).colwise() + _offset;
             velocity = velocity.cwiseProduct( (_scaling.replicate(1, velocity.cols())) );
         }
-        template<typename VoM1>
-        inline void undoTransformVel(VoM1 & velocity){
+        //template<typename VoM1>
+        //inline void undoTransformVel(VoM1 & velocity){
+        inline void undoTransformVel(Ref<MatrixXd> velocity){
             velocity = velocity.cwiseProduct( (_scaling.replicate(1, velocity.cols())) );
         }
-        template<typename VoM1, typename VoM2, typename VoM3>
-        inline void undoTransform(VoM1 & points, VoM2 & velocity, VoM3 & acceleration){
+        //template<typename VoM1, typename VoM2, typename VoM3>
+        //inline void undoTransform(VoM1 & points, VoM2 & velocity, VoM3 & acceleration){
+        inline void undoTransform(Ref<MatrixXd> points, Ref<MatrixXd> velocity, Ref<MatrixXd> acceleration){
             points = (points.cwiseProduct( (_scaling.replicate(1, points.cols())) )).colwise() + _offset;
             velocity = velocity.cwiseProduct( (_scaling.replicate(1, velocity.cols())) );
             acceleration = acceleration.cwiseProduct( (_scaling.replicate(1, acceleration.cols())) );
@@ -313,62 +322,69 @@ class targetModifier{
             _deltaForwardTransform = _translation+_anchorPoint;
         }
         ////////////////
-        template<int dim>
-        void setNewRotation(const Matrix<double, dim,dim> & newRotation){
+        void setNewRotation(const Ref<const MatrixXd> newRotation){
             setNewRotation(newRotation, _anchorPoint);
         }
         ////////////////
-        void setNewRotation(const VectorXd & newAnchorPoint){
+        void setNewRotation(const Ref<const VectorXd> newAnchorPoint){
             setNewRotation(_rotation, newAnchorPoint);
         }
         ////////////////////////////////////////////
-        void setNewTranslation(const VectorXd & newTranslation ){
+        void setNewTranslation(const Ref<const VectorXd> newTranslation ){
             _translation = newTranslation;
             _deltaForwardTransform = _translation+_anchorPoint;
         }
         ////////////////////////////////////////////
         //The applied transformation is equal to as shift by -_translation followed by a rotation around _anchorPoint
-        template<typename VoM>
-        inline void doTransform(VoM & pt){
+        //template<typename VoM>
+        //inline void doTransform(VoM & pt){
+        inline void doTransform( Ref<MatrixXd> pt){
             pt = (_rotation*(pt.colwise()-_deltaForwardTransform)).colwise()+_anchorPoint;
         }
         ///////////////////
-        template<typename VoM1, typename VoM2>
-        inline void doTransform(VoM1 & pt, VoM2 & vel){
+        //template<typename VoM1, typename VoM2>
+        //inline void doTransform(VoM1 & pt, VoM2 & vel){
+        inline void doTransform(Ref<MatrixXd> pt, Ref<MatrixXd> vel){
             pt = (_rotation*(pt.colwise()-_deltaForwardTransform)).colwise()+_anchorPoint;
             vel = _rotation*vel;
         }
         ///////////////////
-        template<typename VoM1>
-        inline void doTransformVel(VoM1 vel){
+        //template<typename VoM1>
+        //inline void doTransformVel(VoM1 vel){
+        inline void doTransformVel(Ref<MatrixXd> vel){
             vel = _rotation*vel;
         }
         ///////////////////
-        template<typename VoM1, typename VoM2, typename VoM3>
-        inline void doTransform(VoM1 & pt, VoM2 & vel, VoM3 & acc){
+        //template<typename VoM1, typename VoM2, typename VoM3>
+        //inline void doTransform(VoM1 & pt, VoM2 & vel, VoM3 & acc){
+        inline void doTransform(Ref<MatrixXd> pt, Ref<MatrixXd> vel, Ref<MatrixXd> acc){
             pt = (_rotation*(pt.colwise()-_deltaForwardTransform)).colwise()+_anchorPoint;
             vel = _rotation*vel;
             acc = _rotation*acc;
         }
         ///////////////////
-        template<typename VoM>
-        inline void undoTransform(VoM & pt){
+        //template<typename VoM>
+        //inline void undoTransform(VoM & pt){
+        inline void undoTransform(Ref<MatrixXd> pt){
             pt = (_rotationInv*(pt.colwise()-_anchorPoint)).colwise()+_deltaForwardTransform;
         }
         ///////////////////
-        template<typename VoM1, typename VoM2>
-        inline void undoTransform(VoM1 & pt, VoM2 & vel){
+        //template<typename VoM1, typename VoM2>
+        //inline void undoTransform(VoM1 & pt, VoM2 & vel){
+        inline void undoTransform(Ref<MatrixXd> pt, Ref<MatrixXd> vel){
             pt = (_rotationInv*(pt.colwise()-_anchorPoint)).colwise()+_deltaForwardTransform;
             vel = _rotationInv*vel;
         }
         ///////////////////
-        template<typename VoM1>
-        inline void undoTransformVel(VoM1 & vel){
+        //template<typename VoM1>
+        //inline void undoTransformVel(VoM1 & vel){
+        inline void undoTransformVel(Ref<MatrixXd> vel){
             vel = _rotationInv*vel;
         }
         ///////////////////
-        template<typename VoM1, typename VoM2, typename VoM3>
-        inline void undoTransform(VoM1 & pt, VoM2 & vel, VoM3 & acc){
+        //template<typename VoM1, typename VoM2, typename VoM3>
+        //inline void undoTransform(VoM1 & pt, VoM2 & vel, VoM3 & acc){
+        inline void undoTransform(Ref<MatrixXd> pt, Ref<MatrixXd> vel, Ref<MatrixXd> acc){
             pt = (_rotationInv*(pt.colwise()-_anchorPoint)).colwise()+_deltaForwardTransform;
             vel = _rotationInv*vel;
             acc = _rotationInv*acc;
@@ -383,8 +399,8 @@ class targetModifier{
             //Stuff defining the control law in control space
             //The resulting velocity in control space is scale(A[_fZone(x)].x)
             vector< MatrixXd* > _Alist;
-            function<int (const VectorXd & ptX)> _fZone;
-            function<void (const VectorXd & ptY, VectorXd & ptYd, const double & controlSpaceVelocity, const double & breakTime, const double & stepTime)> _scaleFunc;
+            function<int (const Ref<const VectorXd> ptX)> _fZone;
+            function<void (const Ref<const MatrixXd> ptY, Ref<MatrixXd> ptYd, const double & controlSpaceVelocity, const double & breakTime, const double & stepTime)> _scaleFunc;
 
             //Preliminary transformations between demonstration space and scaled demonstration space
             diffeoDetails _thisDiffeoDetails;
@@ -472,7 +488,7 @@ class targetModifier{
                 }
             }
             //////////////////////////////////////////////
-            void setLinGainRot(MatrixXd newLinGainRot){
+            void setLinGainRot(Ref<MatrixXd> newLinGainRot){
 
                 MatrixXd linGainRotInv = newLinGainRot.inverse();
                 _thisDiffeoDetails._linGainRot = newLinGainRot;
@@ -525,8 +541,9 @@ class targetModifier{
             }
             //////////////////////////////////////////////
             //////////////////////////////////////////////
-            template<typename Mat>
-            void setZoneAi( const size_t i, const Mat & Ai ){
+            //template<typename Mat>
+            //void setZoneAi( const size_t i, const Mat & Ai ){
+            void setZoneAi( const size_t i, const Ref<const MatrixXd> Ai ){
                 //assert(i<nZones && "out of range");
                 //cout << _linGainRot << endl;
                 while (_Alist.size()<=i){
@@ -543,15 +560,17 @@ class targetModifier{
                 cout << *_Alist[i] << endl;
             }
             //////////////////////////////////////////////
-            void setZoneFunction( std::function<int (const VectorXd & pt)> fZone ){
+            //void setZoneFunction( std::function<int (const VectorXd & pt)> fZone ){
+            void setZoneFunction( std::function<int (const Ref<const VectorXd> pt)> fZone ){
                 _fZone = fZone;
             }
             //////////////////////////////////////////////
-            void setScaleFunc( std::function<void ( const VectorXd & ptY, VectorXd & ptYd, const double & controlSpaceVelocity, const double & breakTime, const double & stepTime )> newScaleFunc ){
+            //void setScaleFunc( std::function<void ( const VectorXd & ptY, VectorXd & ptYd, const double & controlSpaceVelocity, const double & breakTime, const double & stepTime )> newScaleFunc ){
+            void setScaleFunc( std::function<void ( const Ref<const MatrixXd> ptY, Ref<MatrixXd> ptYd, const double & controlSpaceVelocity, const double & breakTime, const double & stepTime )> newScaleFunc ){
                 _scaleFunc = newScaleFunc;
             }
             //////////////////////////////////////////////
-            void setScaling(const VectorXd & newScaling){
+            void setScaling(const Ref<const VectorXd> newScaling){
                 _thisDiffeoDetails._scaling = newScaling;
             }
             //////////////////////////////////////////////
@@ -572,11 +591,12 @@ class targetModifier{
                     cout << "Can not set a new translation for a modifier that does not exist!" << endl;
                     return 1; //Failed to set
                 }
-                //"Useless" copy
+                //Copy the data so that changing the numpy vector in python does not affect this
                 VectorXd newTranslationVec(_dim);
-                for (size_t i=0; i<_dim; ++i){
-                    newTranslationVec(i) = newTranslationPtr[i];//No verification is performend
-                }
+                memcpy(newTranslationVec.data(), newTranslationPtr, _dim*sizeof(double));
+                //for (size_t i=0; i<_dim; ++i){
+                //    newTranslationVec(i) = newTranslationPtr[i];//No verification is performend
+                //}
                 _thisModifier->setNewTranslation(newTranslationVec);
                 return 0;
             }
@@ -601,8 +621,12 @@ class targetModifier{
                     velPtr[i] = vel(i);
                 }
                 */
-                Map<Matrix<double,_dim,nPt>> pt = Map<Matrix<double,_dim,nPt>>(ptPtr);
-                Map<Matrix<double,_dim,nPt>> vel= Map<Matrix<double,_dim,nPt>>(velPtr);
+                spaces thisSpace = static_cast<spaces>(thisSpaceAsInt); //thisSpaceAsInt must be 0 or 1
+                Map<MatrixXd> pt(ptPtr, _dim, nPt);
+                //MatrixXd pt(_dim, nPt);
+                //memcpy(pt.data(), ptPtr, _dim*nPt*sizeof(double));
+                cout << "xC" << endl << pt << endl;
+                Map<MatrixXd> vel(velPtr, _dim, nPt);
                 getVelocity(pt, vel, thisSpace);
 
                 return void();
@@ -610,12 +634,13 @@ class targetModifier{
 
             //////////////////////////////////////////////
             //////////////////////////////////////////////
-            MatrixXd getVelocity( Ref<MatrixXd> pt, Ref<MatrixXd> vel const spaces & thisSpace=demonstration){
+            void getVelocity( const Ref<const MatrixXd> ptIn, Ref<MatrixXd> vel, const spaces & thisSpace=demonstration){
+
 
                 //Get the velocity of points in the control or demonstration space
-                const size_t dim = pt.rows();
-                const size_t nPt = pt.cols();
-                VectorXd thisVel = VectorXd::Zero(dim);
+                const size_t dim = ptIn.rows();
+                const size_t nPt = ptIn.cols();
+                MatrixXd pt = ptIn;
                 //Transform from demonstration to control
                 if(thisSpace==demonstration){
                     if(_thisModifier){
@@ -628,10 +653,10 @@ class targetModifier{
                 //Loop over all points
                 for (size_t i=0; i<(size_t)pt.cols(); ++i){
                         //cout << _fZone(pt.col(i)) << endl;
-                        thisVel = (*_Alist[_fZone(pt.col(i))])*((pt.col(i)));
-                        _scaleFunc(pt.col(i), thisVel, _thisDiffeoDetails._controlSpaceVelocity, _breakTime, 1. );
-                        vel.col(i) = thisVel;
+                        vel.col(i) = (*_Alist[_fZone(pt.col(i))])*((pt.col(i)));
                 }
+                //inline void operator () (const Ref<const MatrixXd> ptY, Ref<MatrixXd> ptYd, const double & controlSpaceVelocity, const double & breakTime = .15, const double & stepTime = 1.) {
+                _scaleFunc(pt, vel, _thisDiffeoDetails._controlSpaceVelocity, _breakTime, 1. );
                 //From control to demonstration
                 if(thisSpace==demonstration){
                     /*
@@ -647,17 +672,18 @@ class targetModifier{
                         _thisModifier->undoTransformVel(vel);
                     }
                 }
-                return;
+                return void();
             }
             //////////////////////////////////////////////
-            template<typename MoV1>
-            MatrixXd getVelocity( MoV1 & pt,  const spaces & thisSpace=demonstration){
+            //template<typename MoV1>
+            //MatrixXd getVelocity( MoV1 & pt,  const spaces & thisSpace=demonstration){
+            MatrixXd getVelocity( const Ref<const MatrixXd> ptIn,  const spaces & thisSpace=demonstration){
 
                 //Get the velocity of points in the control or demonstration space
-                const size_t dim = pt.rows();
-                const size_t nPt = pt.cols();
-                MoV1 vel = MoV1::Zero(dim, nPt);
-                VectorXd thisVel = VectorXd::Zero(dim);
+                const size_t dim = ptIn.rows();
+                const size_t nPt = ptIn.cols();
+                MatrixXd pt = ptIn;
+                MatrixXd vel = MatrixXd::Zero(dim, nPt);
                 //Transform from demonstration to control
                 if(thisSpace==demonstration){
                     if(_thisModifier){
@@ -670,10 +696,9 @@ class targetModifier{
                 //Loop over all points
                 for (size_t i=0; i<(size_t)pt.cols(); ++i){
                         //cout << _fZone(pt.col(i)) << endl;
-                        thisVel = (*_Alist[_fZone(pt.col(i))])*((pt.col(i)));
-                        _scaleFunc(pt.col(i), thisVel, _thisDiffeoDetails._controlSpaceVelocity, _breakTime, 1. );
-                        vel.col(i) = thisVel;
+                        vel.col(i) = (*_Alist[_fZone(pt.col(i))])*((pt.col(i)));
                 }
+                _scaleFunc(pt, vel, _thisDiffeoDetails._controlSpaceVelocity, _breakTime, 1. );
                 //From control to demonstration
                 if(thisSpace==demonstration){
                     /*
@@ -699,8 +724,10 @@ class targetModifier{
             The stored result corresponds to the state/velocity/acceleration of the system if following the flow imposed by the diffeo mvt.
             */
 
-            template<typename M1, typename V1, typename V2>
-            void getTraj( M1 & nextPtX, const V1 & ptX, const V2 & tSteps ){
+            //template<typename M1, typename V1, typename V2>
+            //void getTraj( M1 & nextPtX, const V1 & ptX, const V2 & tSteps ){
+            template<typename M1>
+            void getTraj( M1 & nextPtX, const Ref<const VectorXd> ptX, const Ref<const VectorXd> tSteps ){
                 //Take the given point and calculate the forward trajectory
                 //Attention tSteps has to be in "relative time" -> the current position corresponds to t=0
                 /*assert (nextPtX.rows() == _dim && "Wrong dimension");
@@ -781,8 +808,10 @@ class targetModifier{
                 //Done
             }
             //////////////////////////////////////////////
-            template<typename M1, typename V1, typename V2>
-            void getTraj( M1 & nextPtX, M1 & nextPtXd, const V1 & ptX, const V2 & tSteps ){
+            //template<typename M1, typename V1, typename V2>
+            //void getTraj( M1 & nextPtX, M1 & nextPtXd, const V1 & ptX, const V2 & tSteps ){
+            template<typename M1>
+            void getTraj( M1 & nextPtX, M1 & nextPtXd, const Ref<const VectorXd> ptX, const Ref<const VectorXd> tSteps ){
                 //Take the given point and calculate the forward trajectory
                 //Attention tSteps has to be in "relative time" -> the current position corresponds to t=0
                 /*assert (nextPtX.rows() == _dim && "Wrong dimension");
@@ -871,8 +900,10 @@ class targetModifier{
                 //Done
             }
             //////////////////////////////////////////////
-            template<typename M1, typename V1, typename V2>
-            void getTraj( M1 & nextPtX, M1 & nextPtXd, M1 & nextPtXdd, const V1 & ptX, const V2 & tSteps ){
+            //template<typename M1, typename V1, typename V2>
+            //void getTraj( M1 & nextPtX, M1 & nextPtXd, M1 & nextPtXdd, const V1 & ptX, const V2 & tSteps ){
+            template<typename M1>
+            void getTraj( M1 & nextPtX, M1 & nextPtXd, M1 & nextPtXdd, const Ref<const VectorXd> ptX, const Ref<const VectorXd> tSteps ){
                 //Take the given point and calculate the forward trajectory
                 //Attention tSteps has to be in "relative time" -> the current position corresponds to t=0
                 /*assert (nextPtX.rows() == _dim && "Wrong dimension");

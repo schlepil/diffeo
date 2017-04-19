@@ -17,6 +17,7 @@
     <regularise value=".1e-3"/>
     <scalingMethod value="2"/>
     <alphaDistCoef value="0."/>
+    <distanceScaling value="thisScaling"/>
     <interpolation>
       <basePointsNr value = "3"/>
       <divisionCoef value="3. 2. 1.2"/>

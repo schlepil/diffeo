@@ -123,13 +123,13 @@ namespace DiffeoMethods{
         const int N = pt.cols();
 
         MatrixXd result = coef*(pt.colwise() - center);
-        result = -result.cwiseProduct(result);
+        result = -result.cwiseProduct(result);//noalias()?
 
         //I hope this can be done more efficiently
         MatrixXd helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
         MatrixXd helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
 
-        pt += helper1.cwiseProduct(helper2);
+        pt += helper1.cwiseProduct(helper2);//noalias()?
     }
 
     //////////////////////
@@ -140,6 +140,7 @@ namespace DiffeoMethods{
     *so
     *d/(d pt) tau(pt) = J_pt(tau) = Identity - 2*coef^2*exp(-coef^2.||pt-center||_2^2)*V.(pt-center)
     */
+    /*
     template<typename vectorType, typename V1, typename M1>
     inline void iterativeFunctionJac(const V1 & center, const V1 & target, M1 & pt, const double divisionCoef, const double coef, vectorType & allJacs){
 
@@ -167,6 +168,35 @@ namespace DiffeoMethods{
         //Test
         //pt += (((((target-center)/divisionCoef).replicate(1,N))).cwise(((result.colwise().sum().array().exp().replicate(M,1)))))
     }
+    */
+    template<typename vectorType>
+    inline void iterativeFunctionJac(const Ref<const VectorXd> center, const Ref<const VectorXd> target, Ref<MatrixXd> pt, const double divisionCoef, const double coef, vectorType & allJacs){
+
+        assert(center.rows() == pt.rows() && "Points to be transformed do not have the same dimension as center and target");
+
+        int M = pt.rows();
+        int N = pt.cols();
+
+        MatrixXd result = coef*(pt.colwise() - center);
+        result = -result.cwiseProduct(result);
+
+        //I hope this can be done more efficiently
+        MatrixXd helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
+        MatrixXd helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
+
+        //Calculate jacobians if necessary
+        MatrixXd thisId = MatrixXd::Identity(M,M);
+        Matrix<double,-1,1> V = helper1.col(0);
+        MatrixXd deltaPos = pt.colwise()-center;
+        for (size_t i=0; i<N; i++){
+            allJacs[i] = (thisId - helper2(0,i)*2.*coef*coef*V*( deltaPos.col(i).transpose() ))*(allJacs[i]);
+        }
+
+        pt += helper1.cwiseProduct(helper2);
+        //Test
+        //pt += (((((target-center)/divisionCoef).replicate(1,N))).cwise(((result.colwise().sum().array().exp().replicate(M,1)))))
+    }
+
     //////////////////////
     /*
     *Same as iterative function but also transforming the velocity associated to each point
@@ -202,8 +232,9 @@ namespace DiffeoMethods{
 
         pt += helper1.cwiseProduct(helper2);
     }*/
-    template<typename Vref, typename Mref>
-    inline void iterativeFunctionVel(const Ref<const Vref> center, const Ref<const Vref>  target, Ref<Mref>  pt, Ref<Mref> vel, const double divisionCoef, const double coef){
+    //template<typename Vref, typename Mref>
+    //inline void iterativeFunctionVel(const Ref<const Vref> center, const Ref<const Vref>  target, Ref<Mref>  pt, Ref<Mref> vel, const double divisionCoef, const double coef){
+    inline void iterativeFunctionVel(const Ref<const VectorXd> center, const Ref<const VectorXd>  target, Ref<MatrixXd>  pt, Ref<MatrixXd> vel, const double divisionCoef, const double coef){
 
         assert(center.rows() == pt.rows() && "Points to be transformed do not have the same dimension as center and target");
         assert(coef>0. && "coef needs to be positive");
@@ -211,17 +242,17 @@ namespace DiffeoMethods{
         const size_t M = pt.rows();
         const size_t N = pt.cols();
 
-        Mref result = coef*(pt.colwise() - center);
+        MatrixXd result = coef*(pt.colwise() - center);
         result = -result.cwiseProduct(result);
 
         //I hope this can be done more efficiently
-        Mref helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
-        Mref helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
+        MatrixXd helper1 = ((target-center)/divisionCoef).replicate(1,N) ;
+        MatrixXd helper2 = result.colwise().sum().array().exp().replicate(M,1) ;
 
         //Calculate jacobians if necessary
         MatrixXd thisId = MatrixXd::Identity(M,M);
         Matrix<double,-1,1> V = helper1.col(0);
-        M1 deltaPos = pt.colwise()-center;
+        MatrixXd deltaPos = pt.colwise()-center;
         for (size_t i=0; i<N; i++){
             vel.col(i) = (thisId - helper2(0,i)*2.*coef*coef*V*( deltaPos.col(i).transpose() ))*vel.col(i);
         }
@@ -237,8 +268,9 @@ namespace DiffeoMethods{
     *So
     *tau(pt) = tau_N(tau_(N-1)(...(tau_1(tau_0(pt)))))
     */
-    template<typename M1>
-    void forwardDiffeo(M1 & pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
+    //template<typename M1>
+    //void forwardDiffeo(M1 & pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
+    void forwardDiffeo(Ref<MatrixXd> pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
 
         nStart = nStart<0 ? 0:nStart;
         nStop = nStop<0 ? aDiffeo.numTrans:nStop;
@@ -257,8 +289,10 @@ namespace DiffeoMethods{
     *then
     *J_pt(tau) = J_(tau^(N-1)(pt))(tau_N)*...*J_(tau^1(pt))(tau_2)*J_(tau^0(pt))(tau_1)*J_pt(tau_0) where * denotes standard matrix product
     */
-    template<typename vectorType, typename M1>
-    void forwardDiffeoJac(M1 & pt, const diffeoStruct & aDiffeo, vectorType & allJacs, int nStart=-1, int nStop=-1){
+    //template<typename vectorType, typename M1>
+    //void forwardDiffeoJac(M1 & pt, const diffeoStruct & aDiffeo, vectorType & allJacs, int nStart=-1, int nStop=-1){
+    template<typename vectorType>
+    void forwardDiffeoJac(Ref<MatrixXd> pt, const diffeoStruct & aDiffeo, vectorType & allJacs, int nStart=-1, int nStop=-1){
 
         int dim = pt.rows();
         int l = pt.cols();
@@ -286,8 +320,9 @@ namespace DiffeoMethods{
     *then
     *J_pt(tau) = J_(tau^(N-1)(pt))(tau_N)*...*J_(tau^1(pt))(tau_2)*J_(tau^0(pt))(tau_1)*J_pt(tau_0) where * denotes standard matrix product
     */
-    template<typename M1>
-    void forwardDiffeoVel(M1 & pt, M1 & vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
+    //template<typename M1>
+    //void forwardDiffeoVel(M1 & pt, M1 & vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
+    void forwardDiffeoVel(Ref<MatrixXd> pt, Ref<MatrixXd> vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1){
         nStart = nStart<0 ? 0:nStart;
         nStop = nStop<0 ? aDiffeo.numTrans:nStop;
         //std::cout << "forward: " << nStart << "to: " << nStop << std::endl;
@@ -305,8 +340,9 @@ namespace DiffeoMethods{
     *Inline function calculating the exponential factor of a transformation
     *V1 and V2 need to be different templates in order to allow the usage with
     */
-    template<typename V1, typename V2>
-    inline double radial(const V1 & center, const V2 & pt, const double coefSq){
+    //template<typename V1, typename V2>
+    //inline double radial(const V1 & center, const V2 & pt, const double coefSq){
+    inline double radial(const Ref<const VectorXd> center, const Ref<const VectorXd> pt, const double coefSq){
         //V1 dX = pt-center;
         //return exp(-coefSq * ((double) dX.dot(dX)));
         return exp(-coefSq * ((double) (pt-center).squaredNorm()));
@@ -318,8 +354,9 @@ namespace DiffeoMethods{
     *bounded version of newton's method to find the
     *pt = inverse(tau)(pt')
     */
-    template<typename MatorVec>
-    void reverseDiffeo(MatorVec & pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
+    //template<typename MatorVec>
+    //void reverseDiffeo(MatorVec & pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
+    void reverseDiffeo(Ref<MatrixXd> pt, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
 
         size_t nPoints = pt.cols();
 
@@ -375,11 +412,13 @@ namespace DiffeoMethods{
     *This method also provides jacobians associated to each point. By default the "forward" jacobians are returned, since there is no analytical form to directly obtain
     *the jacobians of the reverse transformation
     */
-    template<typename MatorVec, typename vectorType>
-    void reverseDiffeoJac(MatorVec & pt, vectorType & allJacs, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12, const bool returnForwardJacs=true){
+    //template<typename MatorVec, typename vectorType>
+    //void reverseDiffeoJac(MatorVec & pt, vectorType & allJacs, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12, const bool returnForwardJacs=true){
+    template<typename vectorType>
+    void reverseDiffeoJac(Ref<MatrixXd> pt, vectorType & allJacs, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12, const bool returnForwardJacs=true){
 
-        int dim = pt.rows();
-        int nPoints = pt.cols();
+        const int dim = pt.rows();
+        const int nPoints = pt.cols();
 
         //assert((pt.cols()==1));
 
@@ -444,11 +483,14 @@ namespace DiffeoMethods{
     *pt = inverse(tau)(pt')
     *This method also transforms the velocities associated to each point from the demonstration to the control space
     */
-    template<typename MatorVec>
-    void reverseDiffeoVel(MatorVec & pt, MatorVec & vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
+    //template<typename MatorVec>
+    //void reverseDiffeoVel(MatorVec & pt, MatorVec & vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
+    void reverseDiffeoVel(Ref<MatrixXd> pt, Ref<MatrixXd> vel, const diffeoStruct & aDiffeo, int nStart=-1, int nStop=-1, const double convCrit=1e-12){
 
-        int dim = pt.rows();
-        int nPoints = pt.cols();
+        assert( (pt.rows()==vel.rows()) && (pt.cols()==vel.cols()) && "There need to be as many velocities as positions") ;
+
+        const int dim = pt.rows();
+        const int nPoints = pt.cols();
 
         //assert((pt.cols()==1));
 

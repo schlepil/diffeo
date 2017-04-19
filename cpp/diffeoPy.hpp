@@ -26,7 +26,7 @@ DiffeoMoveObj* saveDiffeoToFolder(){
     //Get the path information
     double eigValOrtho;
     double breakTime;
-    string inputPath, resultPath, targetName, targetTime;
+    string inputPath, resultPath, targetName, targetTime, distanceScalingStr;
     char buff[FILENAME_MAX];
     getcwd( buff, FILENAME_MAX );
     //Get the xml
@@ -48,7 +48,8 @@ DiffeoMoveObj* saveDiffeoToFolder(){
     xmlOpts.FirstChildElement("targetName").Element()->QueryStringAttribute("value", &targetName);
     xmlOpts.FirstChildElement("targetTime").Element()->QueryStringAttribute("value", &targetTime);
 
-
+    xmlOpts = hDoc.FirstChildElement("diffeo").FirstChildElement("searchOpts");
+    xmlOpts.FirstChildElement("distanceScaling").Element()->QueryStringAttribute("value", &distanceScalingStr);
 
 
     //Load search optionsř
@@ -72,7 +73,10 @@ DiffeoMoveObj* saveDiffeoToFolder(){
     VectorXd timeIn = Leph::ReadVector(inputPath+targetTime);
 
     //Get the scaling vector in the search opts
-    theseOptions.setDistanceCoef(targetIn);
+    if (distanceScalingStr.compare("manual")==0){
+        cout << "function based coefs" << endl;
+        theseOptions.setDistanceCoef(targetIn);
+    }
 
     cout << "The scaling coefficientis " << theseOptions.alpha << endl << "resulting coefs are " << endl << *theseOptions.distanceScalingVector << endl;
 
